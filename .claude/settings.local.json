@@ -17,7 +17,8 @@
       "Bash(mv:*)",
       "Bash(/mnt/c/Users/Dred/sdk/flutter/bin/flutter pub get)",
       "Bash(flutter:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
