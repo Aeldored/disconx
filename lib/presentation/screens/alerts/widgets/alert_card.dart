@@ -245,10 +245,13 @@ class AlertCard extends StatelessWidget {
   Color _getHeaderColor() {
     switch (alert.type) {
       case AlertType.critical:
+      case AlertType.evilTwin:
         return AppColors.danger;
       case AlertType.warning:
+      case AlertType.suspiciousNetwork:
         return AppColors.warning;
       case AlertType.info:
+      case AlertType.networkBlocked:
         return AppColors.primary;
     }
   }
@@ -256,10 +259,13 @@ class AlertCard extends StatelessWidget {
   IconData _getAlertIcon() {
     switch (alert.type) {
       case AlertType.critical:
+      case AlertType.evilTwin:
         return Icons.warning;
       case AlertType.warning:
+      case AlertType.suspiciousNetwork:
         return Icons.error_outline;
       case AlertType.info:
+      case AlertType.networkBlocked:
         return Icons.info_outline;
     }
   }
@@ -272,6 +278,12 @@ class AlertCard extends StatelessWidget {
         return 'Warning Alert';
       case AlertType.info:
         return 'Information';
+      case AlertType.evilTwin:
+        return 'Evil Twin Detected';
+      case AlertType.suspiciousNetwork:
+        return 'Suspicious Network';
+      case AlertType.networkBlocked:
+        return 'Network Blocked';
     }
   }
 

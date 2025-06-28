@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-// import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'providers/network_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/alert_provider.dart';
+import 'data/services/firebase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,15 +19,21 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
   
+  // Initialize services
+  final prefs = await SharedPreferences.getInstance();
+  
   // Initialize Firebase with error handling
-  // TODO: Uncomment when Firebase is properly configured
-  // try {
-  //   await Firebase.initializeApp();
-  //   print('Firebase initialized successfully');
-  // } catch (e) {
-  //   print('Firebase initialization failed: $e');
-  //   print('App will continue with local functionality only');
-  // }
+  try {
+    await Firebase.initializeApp();
+    print('Firebase initialized successfully');
+    
+    // Initialize Firebase service
+    final firebaseService = FirebaseService();
+    await firebaseService.initialize();
+  } catch (e) {
+    print('Firebase initialization failed: $e');
+    print('App will continue with local functionality only');
+  }
   
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -39,11 +48,25 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => NetworkProvider()),
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => AlertProvider()),
+        ChangeNotifierProxyProvider<AlertProvider, NetworkProvider>(
+          create: (_) {
+            final networkProvider = NetworkProvider();
+            // Initialize Firebase in NetworkProvider
+            networkProvider.initializeFirebase(prefs).catchError((e) {
+              print('NetworkProvider Firebase initialization failed: $e');
+            });
+            return networkProvider;
+          },
+          update: (_, alertProvider, networkProvider) {
+            networkProvider?.setAlertProvider(alertProvider);
+            return networkProvider ?? NetworkProvider();
+          },
+        ),
+        ChangeNotifierProvider(create: (_) => SettingsProvider(prefs)),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
-      child: const DiSConXApp(),
+      child: const DisConXApp(),
     ),
   );
 }

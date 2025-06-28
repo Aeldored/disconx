@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../../core/theme/app_colors.dart';
 import 'widgets/scan_animation_widget.dart';
-import 'widgets/scan_result_item.dart';
+import 'widgets/scan_result_item.dart' show ScanResult, ScanStatus, ScanResultItem;
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});

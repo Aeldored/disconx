@@ -25,7 +25,7 @@ class AlertRepository {
       final response = await _dio.get(
         AppConstants.alertsEndpoint,
         options: Options(
-          receiveTimeout: AppConstants.networkTimeout.inMilliseconds,
+          receiveTimeout: Duration(milliseconds: AppConstants.networkTimeout.inMilliseconds),
         ),
       );
 
@@ -162,22 +162,26 @@ class AlertRepository {
     String? securityType,
   }) {
     AlertType type;
+    AlertSeverity severity;
     String title;
     String message;
 
     switch (status) {
       case NetworkStatus.suspicious:
-        type = AlertType.critical;
+        type = AlertType.evilTwin;
+        severity = AlertSeverity.critical;
         title = 'Evil Twin Attack Detected';
         message = 'A suspicious network "$networkName" was detected that may be attempting to mimic an official network.';
         break;
       case NetworkStatus.unknown:
-        type = AlertType.warning;
+        type = AlertType.suspiciousNetwork;
+        severity = AlertSeverity.high;
         title = 'Unknown Network Detected';
         message = 'The network "$networkName" is not on DICT\'s verified list of public Wi-Fi hotspots. Exercise caution when connecting.';
         break;
       case NetworkStatus.verified:
         type = AlertType.info;
+        severity = AlertSeverity.low;
         title = 'Verified Network Found';
         message = '"$networkName" is a verified DICT public access point. Safe to connect.';
         break;
@@ -188,6 +192,7 @@ class AlertRepository {
       type: type,
       title: title,
       message: message,
+      severity: severity,
       networkName: networkName,
       macAddress: macAddress,
       location: location,

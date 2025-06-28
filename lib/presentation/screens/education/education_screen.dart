@@ -111,14 +111,18 @@ class _EducationScreenState extends State<EducationScreen> {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Learn how to protect yourself from Wi-Fi security threats',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ],
             ),
@@ -145,7 +149,7 @@ class _EducationScreenState extends State<EducationScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
-                    childAspectRatio: 1.2,
+                    childAspectRatio: 1.1,
                   ),
                   itemCount: _securityTips.length,
                   itemBuilder: (context, index) {
@@ -229,50 +233,61 @@ class _EducationScreenState extends State<EducationScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Row(
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 8,
                           children: [
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: Colors.blue[100],
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.quiz,
-                                color: AppColors.primary,
-                                size: 18,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[100],
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.quiz,
+                                    color: AppColors.primary,
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '10 questions',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '10 questions',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: Colors.green[100],
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.workspace_premium,
-                                color: AppColors.success,
-                                size: 18,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Get certified',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green[100],
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.workspace_premium,
+                                    color: AppColors.success,
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Get certified',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -348,8 +363,16 @@ class _EducationScreenState extends State<EducationScreen> {
             color: AppColors.primary,
           ),
         ),
-        title: Text(title),
-        subtitle: Text(subtitle),
+        title: Text(
+          title,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+        subtitle: Text(
+          subtitle,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 2,
+        ),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),

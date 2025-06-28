@@ -24,7 +24,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       elevation: 2,
       title: Row(
         children: [
-          if (title == 'DiSCon-X') ...[
+          if (title == 'DisConX') ...[
             const Icon(
               Icons.shield,
               color: Colors.white,

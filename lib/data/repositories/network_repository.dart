@@ -24,8 +24,8 @@ class NetworkRepository {
       final response = await _dio.get(
         AppConstants.networksEndpoint,
         options: Options(
-          receiveTimeout: AppConstants.networkTimeout.inMilliseconds,
-          sendTimeout: AppConstants.networkTimeout.inMilliseconds,
+          receiveTimeout: Duration(milliseconds: AppConstants.networkTimeout.inMilliseconds),
+          sendTimeout: Duration(milliseconds: AppConstants.networkTimeout.inMilliseconds),
         ),
       );
 
@@ -61,7 +61,7 @@ class NetworkRepository {
       final response = await _dio.get(
         AppConstants.whitelistEndpoint,
         options: Options(
-          receiveTimeout: AppConstants.networkTimeout.inMilliseconds,
+          receiveTimeout: Duration(milliseconds: AppConstants.networkTimeout.inMilliseconds),
         ),
       );
 

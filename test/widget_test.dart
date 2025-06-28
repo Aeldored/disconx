@@ -12,24 +12,37 @@ import 'package:provider/provider.dart';
 import 'package:disconx/app.dart';
 import 'package:disconx/providers/network_provider.dart';
 import 'package:disconx/providers/settings_provider.dart';
+import 'package:disconx/providers/alert_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:disconx/providers/auth_provider.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
+    // Initialize shared preferences for testing
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    
     // Build our app and trigger a frame.
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => NetworkProvider()),
-          ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ChangeNotifierProvider(create: (_) => AlertProvider()),
+          ChangeNotifierProxyProvider<AlertProvider, NetworkProvider>(
+            create: (_) => NetworkProvider(),
+            update: (_, alertProvider, networkProvider) {
+              networkProvider?.setAlertProvider(alertProvider);
+              return networkProvider ?? NetworkProvider();
+            },
+          ),
+          ChangeNotifierProvider(create: (_) => SettingsProvider(prefs)),
           ChangeNotifierProvider(create: (_) => AuthProvider()),
         ],
-        child: const DiSConXApp(),
+        child: const DisConXApp(),
       ),
     );
 
     // Verify that the app loads
-    expect(find.text('DiSCon-X'), findsOneWidget);
+    expect(find.text('DisConX'), findsOneWidget);
     
     // Wait for initialization
     await tester.pumpAndSettle();

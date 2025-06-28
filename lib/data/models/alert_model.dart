@@ -1,10 +1,13 @@
-enum AlertType { critical, warning, info }
+enum AlertType { critical, warning, info, evilTwin, suspiciousNetwork, networkBlocked }
+
+enum AlertSeverity { low, medium, high, critical }
 
 class AlertModel {
   final String id;
   final AlertType type;
   final String title;
   final String message;
+  final AlertSeverity severity;
   final String? networkName;
   final String? securityType;
   final String? macAddress;
@@ -18,6 +21,7 @@ class AlertModel {
     required this.type,
     required this.title,
     required this.message,
+    required this.severity,
     this.networkName,
     this.securityType,
     this.macAddress,
@@ -35,6 +39,9 @@ class AlertModel {
       ),
       title: json['title'],
       message: json['message'],
+      severity: AlertSeverity.values.firstWhere(
+        (e) => e.toString() == 'AlertSeverity.${json['severity']}',
+      ),
       networkName: json['networkName'],
       securityType: json['securityType'],
       macAddress: json['macAddress'],
@@ -51,6 +58,7 @@ class AlertModel {
       'type': type.toString().split('.').last,
       'title': title,
       'message': message,
+      'severity': severity.toString().split('.').last,
       'networkName': networkName,
       'securityType': securityType,
       'macAddress': macAddress,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/alert_model.dart';
+import '../../../providers/alert_provider.dart';
 import 'widgets/alert_card.dart';
 
 class AlertsScreen extends StatefulWidget {
@@ -12,54 +14,11 @@ class AlertsScreen extends StatefulWidget {
 
 class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<AlertModel> _alerts = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadMockAlerts();
-  }
-
-  void _loadMockAlerts() {
-    _alerts.addAll([
-      AlertModel(
-        id: '1',
-        type: AlertType.critical,
-        title: 'Evil Twin Attack Detected',
-        message: 'A suspicious network "FREE_WiFi_CalambaCity" was detected that '
-            'may be attempting to mimic an official network.',
-        networkName: 'FREE_WiFi_CalambaCity',
-        securityType: 'Open (None)',
-        macAddress: '00:1A:2B:3C:4D:5E',
-        location: 'Calamba City Plaza',
-        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-        isRead: false,
-      ),
-      AlertModel(
-        id: '2',
-        type: AlertType.warning,
-        title: 'Unknown Network Detected',
-        message: 'The network "ShopMall_FREE" is not on DICT\'s verified list of '
-            'public Wi-Fi hotspots. Exercise caution when connecting.',
-        networkName: 'ShopMall_FREE',
-        securityType: 'Open (None)',
-        macAddress: 'A1:B2:C3:D4:E5:F6',
-        location: 'SM Calamba',
-        timestamp: DateTime.now().subtract(const Duration(days: 1)),
-        isRead: true,
-      ),
-      AlertModel(
-        id: '3',
-        type: AlertType.info,
-        title: 'New Verified Network',
-        message: '"BatangasFreeWiFi" has been added to DICT\'s verified list of '
-            'public Wi-Fi hotspots.',
-        networkName: 'BatangasFreeWiFi',
-        timestamp: DateTime.now().subtract(const Duration(days: 5)),
-        isRead: true,
-      ),
-    ]);
   }
 
   @override
@@ -68,14 +27,14 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
     super.dispose();
   }
 
-  List<AlertModel> _getFilteredAlerts(int tabIndex) {
+  List<AlertModel> _getFilteredAlerts(AlertProvider alertProvider, int tabIndex) {
     switch (tabIndex) {
       case 0: // Recent
-        return _alerts.where((alert) => !alert.isArchived).toList();
+        return alertProvider.recentAlerts;
       case 1: // All
-        return _alerts;
+        return alertProvider.alerts;
       case 2: // Archived
-        return _alerts.where((alert) => alert.isArchived).toList();
+        return alertProvider.archivedAlerts;
       default:
         return [];
     }
@@ -121,50 +80,54 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
         
         // Content
         Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: List.generate(3, (tabIndex) {
-              final alerts = _getFilteredAlerts(tabIndex);
-              
-              if (alerts.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.notifications_off_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
+          child: Consumer<AlertProvider>(
+            builder: (context, alertProvider, child) {
+              return TabBarView(
+                controller: _tabController,
+                children: List.generate(3, (tabIndex) {
+                  final alerts = _getFilteredAlerts(alertProvider, tabIndex);
+                  
+                  if (alerts.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.notifications_off_outlined,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No alerts',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No alerts',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
+                    );
+                  }
+                  
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: alerts.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: AlertCard(
+                          alert: alerts[index],
+                          onDetails: () => _showAlertDetails(alerts[index]),
+                          onAction: () => _handleAlertAction(alerts[index]),
+                          onDismiss: () => _dismissAlert(alertProvider, alerts[index]),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: alerts.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: AlertCard(
-                      alert: alerts[index],
-                      onDetails: () => _showAlertDetails(alerts[index]),
-                      onAction: () => _handleAlertAction(alerts[index]),
-                      onDismiss: () => _dismissAlert(alerts[index]),
-                    ),
+                      );
+                    },
                   );
-                },
+                }),
               );
-            }),
+            },
           ),
         ),
       ],
@@ -357,10 +320,9 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
     );
   }
 
-  void _dismissAlert(AlertModel alert) {
-    setState(() {
-      alert.isRead = true;
-      alert.isArchived = true;
-    });
+  void _dismissAlert(AlertProvider alertProvider, AlertModel alert) {
+    // Mark alert as read and archive it through the provider
+    alertProvider.markAsRead(alert.id);
+    alertProvider.archiveAlert(alert.id);
   }
 }

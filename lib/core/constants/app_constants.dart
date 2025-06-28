@@ -1,6 +1,6 @@
 class AppConstants {
   // App Info
-  static const String appName = 'DiSCon-X';
+  static const String appName = 'DisConX';
   static const String appFullName = 'DICT Secure Connect';
   static const String appVersion = '1.2.5';
   static const String organization = 'DICT-CALABARZON';

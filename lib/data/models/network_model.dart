@@ -1,6 +1,6 @@
 enum NetworkStatus { verified, suspicious, unknown }
 
-enum SecurityType { wpa2, wpa3, open }
+enum SecurityType { wpa2, wpa3, wep, open }
 
 class NetworkModel {
   final String id;
@@ -35,10 +35,14 @@ class NetworkModel {
         return 'WPA2';
       case SecurityType.wpa3:
         return 'WPA3';
+      case SecurityType.wep:
+        return 'WEP';
       case SecurityType.open:
         return 'Open';
     }
   }
+
+  bool get isSuspicious => status == NetworkStatus.suspicious;
 
   String get signalStrengthString {
     if (signalStrength > 70) return 'Strong';

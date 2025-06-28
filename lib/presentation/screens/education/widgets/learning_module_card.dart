@@ -149,8 +149,7 @@ class LearningModuleCard extends StatelessWidget {
                 ],
                 
                 // Footer
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
                   children: [
                     Row(
                       children: [
@@ -160,26 +159,33 @@ class LearningModuleCard extends StatelessWidget {
                           color: Colors.grey[500],
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          '${_formatViewCount(module.viewCount)} views',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 12,
+                        Expanded(
+                          child: Text(
+                            '${_formatViewCount(module.viewCount)} views',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         _buildDifficultyBadge(),
                       ],
                     ),
-                    TextButton(
-                      onPressed: onStart,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        minimumSize: const Size(0, 32),
-                      ),
-                      child: Text(
-                        module.isCompleted ? 'Review' : 'Start',
-                        style: const TextStyle(fontSize: 14),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: onStart,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          minimumSize: const Size(0, 36),
+                        ),
+                        child: Text(
+                          module.isCompleted ? 'Review' : 'Start',
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       ),
                     ),
                   ],

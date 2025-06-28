@@ -37,7 +37,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Customize DiSCon-X to match your preferences',
+                  'Customize DisConX to match your preferences',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
@@ -263,7 +263,7 @@ class SettingsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 32),
             child: Text(
-              'DiSCon-X: DICT-CALABARZON Secure Connect\n'
+              'DisConX: DICT-CALABARZON Secure Connect\n'
               'Department of Information and Communications Technology',
               textAlign: TextAlign.center,
               style: TextStyle(

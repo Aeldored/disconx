@@ -28,7 +28,7 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   final List<String> _titles = [
-    'DiSCon-X',
+    'DisConX',
     'Network Scan',
     'Security Alerts',
     'Cybersecurity Education',
