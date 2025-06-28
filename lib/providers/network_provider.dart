@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/network_model.dart';
 import '../data/services/firebase_service.dart';
+import '../data/services/wifi_scanning_service.dart';
 import '../data/repositories/whitelist_repository.dart';
 import 'alert_provider.dart';
 
@@ -19,16 +20,37 @@ class NetworkProvider extends ChangeNotifier {
   WhitelistRepository? _whitelistRepository;
   WhitelistData? _currentWhitelist;
   bool _firebaseEnabled = false;
+  
+  // Wi-Fi scanning integration
+  final WiFiScanningService _wifiScanner = WiFiScanningService();
+  bool _wifiScanningEnabled = false;
 
   List<NetworkModel> get networks => _networks;
   List<NetworkModel> get filteredNetworks => _filteredNetworks;
   NetworkModel? get currentNetwork => _currentNetwork;
   bool get isLoading => _isLoading;
   bool get firebaseEnabled => _firebaseEnabled;
+  bool get wifiScanningEnabled => _wifiScanningEnabled;
   WhitelistData? get currentWhitelist => _currentWhitelist;
 
   NetworkProvider() {
     _initializeMockData();
+    _initializeWiFiScanning();
+  }
+
+  /// Initialize Wi-Fi scanning service
+  Future<void> _initializeWiFiScanning() async {
+    try {
+      _wifiScanningEnabled = await _wifiScanner.initialize();
+      if (_wifiScanningEnabled) {
+        print('Wi-Fi scanning enabled successfully');
+      } else {
+        print('Wi-Fi scanning not available, using mock data');
+      }
+    } catch (e) {
+      print('Wi-Fi scanning initialization failed: $e');
+      _wifiScanningEnabled = false;
+    }
   }
 
   void setAlertProvider(AlertProvider alertProvider) {
@@ -178,19 +200,112 @@ class NetworkProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    // If Firebase is enabled, try to get real whitelist data
-    if (_firebaseEnabled && _currentWhitelist != null) {
-      await _performFirebaseEnhancedScan();
-    } else {
-      // Fallback to mock data
+    try {
+      if (_wifiScanningEnabled) {
+        // Use real Wi-Fi scanning
+        await _performRealWiFiScan();
+      } else if (_firebaseEnabled && _currentWhitelist != null) {
+        // Use Firebase-enhanced mock data
+        await _performFirebaseEnhancedScan();
+      } else {
+        // Fallback to mock data
+        await _performRealisticScan();
+      }
+
+      // Log scan event to Firebase Analytics
+      await logScanEvent();
+    } catch (e) {
+      print('Error loading networks: $e');
+      // Fallback to mock data on error
       await _performRealisticScan();
     }
 
-    // Log scan event to Firebase Analytics
-    await logScanEvent();
-
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> _performRealWiFiScan() async {
+    print('Performing real Wi-Fi scan...');
+    
+    // Clear existing networks
+    _networks.clear();
+    notifyListeners();
+    
+    try {
+      // Perform Wi-Fi scan
+      final scannedNetworks = await _wifiScanner.performScan();
+      
+      // Process and validate scanned networks
+      _networks = scannedNetworks;
+      
+      // Perform evil twin detection on real scan results
+      _performEvilTwinDetection();
+      
+      // Cross-reference with whitelist if available
+      if (_firebaseEnabled && _currentWhitelist != null) {
+        _crossReferenceWithWhitelist();
+      }
+      
+      // Generate alerts for suspicious networks
+      _generateAlertsForSuspiciousNetworks();
+      
+      // Auto-report suspicious networks to Firebase
+      if (_firebaseEnabled) {
+        for (final network in _networks.where((n) => n.status == NetworkStatus.suspicious)) {
+          await reportSuspiciousNetwork(network);
+        }
+      }
+      
+      // Set current network (check if we're connected to any of the scanned networks)
+      await _identifyCurrentNetwork();
+      
+      print('Real Wi-Fi scan completed: ${_networks.length} networks found');
+      
+    } catch (e) {
+      print('Real Wi-Fi scan failed: $e');
+      // Fall back to mock data
+      await _performRealisticScan();
+    }
+    
+    _filteredNetworks = List.from(_networks);
+  }
+
+  /// Cross-reference scanned networks with Firebase whitelist
+  void _crossReferenceWithWhitelist() {
+    for (int i = 0; i < _networks.length; i++) {
+      final network = _networks[i];
+      if (isNetworkWhitelisted(network.macAddress)) {
+        _networks[i] = network.copyWith(
+          status: NetworkStatus.verified,
+          description: '${network.description} (Verified via DICT whitelist)',
+        );
+      }
+    }
+  }
+
+  /// Identify current connected network from scan results
+  Future<void> _identifyCurrentNetwork() async {
+    // Try to identify which network we're currently connected to
+    // This is a simplified implementation - in practice, you'd use 
+    // connectivity APIs to get the current SSID and match it
+    
+    // For now, we'll mark the strongest signal as potentially connected
+    if (_networks.isNotEmpty) {
+      final strongestNetwork = _networks.reduce((a, b) => 
+        a.signalStrength > b.signalStrength ? a : b);
+      
+      // Only mark as connected if it's a verified/trusted network with very strong signal
+      if ((strongestNetwork.status == NetworkStatus.verified || 
+           strongestNetwork.status == NetworkStatus.trusted) &&
+          strongestNetwork.signalStrength > 80) {
+        
+        final index = _networks.indexWhere((n) => n.id == strongestNetwork.id);
+        if (index != -1) {
+          _networks[index] = strongestNetwork.copyWith(isConnected: true);
+          _currentNetwork = _networks[index];
+        }
+      }
+    }
   }
 
   Future<void> _performFirebaseEnhancedScan() async {
@@ -663,5 +778,34 @@ class NetworkProvider extends ChangeNotifier {
   /// Refresh the networks list to reflect any status changes
   Future<void> refreshNetworks() async {
     await loadNearbyNetworks();
+  }
+
+  /// Check if Wi-Fi scanning permissions are granted
+  Future<bool> hasWiFiScanningPermissions() async {
+    return await _wifiScanner.hasRequiredPermissions();
+  }
+
+  /// Request Wi-Fi scanning permissions
+  Future<bool> requestWiFiScanningPermissions() async {
+    if (!_wifiScanningEnabled) {
+      _wifiScanningEnabled = await _wifiScanner.initialize();
+      if (_wifiScanningEnabled) {
+        notifyListeners();
+      }
+    }
+    return _wifiScanningEnabled;
+  }
+
+  /// Start continuous Wi-Fi scanning (for real-time updates)
+  Stream<List<NetworkModel>>? startContinuousScanning() {
+    if (_wifiScanningEnabled) {
+      return _wifiScanner.startContinuousScanning();
+    }
+    return null;
+  }
+
+  /// Stop continuous Wi-Fi scanning
+  void stopContinuousScanning() {
+    _wifiScanner.stopContinuousScanning();
   }
 }

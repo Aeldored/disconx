@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'app_colors.dart';
+import '../constants/ui_constants.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
+      useMaterial3: true,
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.light,
       colorScheme: const ColorScheme.light(
@@ -11,27 +14,34 @@ class AppTheme {
         secondary: AppColors.secondary,
         surface: Colors.white,
         error: AppColors.danger,
+        tertiary: AppColors.accent,
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.primary,
-        elevation: 2,
+        elevation: UIConstants.elevationMD,
         centerTitle: false,
-        titleTextStyle: TextStyle(
+        titleTextStyle: UIConstants.heading4.copyWith(
           color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
         ),
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
+        systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: UIConstants.spaceLG, 
+            vertical: UIConstants.spaceMD,
           ),
-          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(UIConstants.radiusLG),
+          ),
+          elevation: UIConstants.elevationSM,
+          shadowColor: AppColors.primary.withValues(alpha: 0.3),
+          textStyle: UIConstants.bodyMedium.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -57,11 +67,23 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
       cardTheme: CardThemeData(
-        elevation: 2,
+        elevation: UIConstants.elevationMD,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(UIConstants.radiusLG),
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(
+          horizontal: UIConstants.spaceLG, 
+          vertical: UIConstants.spaceSM,
+        ),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: UIConstants.elevationLG,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(UIConstants.radiusXL),
+        ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Colors.white,

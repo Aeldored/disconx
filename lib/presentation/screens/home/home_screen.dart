@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/network_model.dart';
 import '../../../data/services/access_point_service.dart';
+import '../../../data/services/wifi_connection_service.dart';
 import '../../../providers/network_provider.dart';
 import 'widgets/network_map_widget.dart';
 import 'widgets/connection_info_widget.dart';
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final AccessPointService _accessPointService = AccessPointService();
+  final WiFiConnectionService _wifiConnectionService = WiFiConnectionService();
 
   @override
   void initState() {
@@ -115,15 +117,56 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // Nearby Networks Section
+          // Nearby Networks Section with Scanning Status
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'Nearby Networks',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Consumer<NetworkProvider>(
+                builder: (context, provider, child) {
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Nearby Networks',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      if (provider.wifiScanningEnabled) ...[
+                        Icon(
+                          Icons.wifi_find,
+                          size: 16,
+                          color: Colors.green,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Live Scan',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.green,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ] else ...[
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 16,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Demo Mode',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -180,12 +223,104 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _handleConnect(NetworkModel network) {
-    // TODO: Implement connection logic
+  Future<void> _handleConnect(NetworkModel network) async {
+    try {
+      String? password;
+      
+      // Show password dialog if network is secured
+      if (network.securityType != SecurityType.open) {
+        password = await _wifiConnectionService.showPasswordDialog(context, network);
+        if (password == null) {
+          // User cancelled password dialog
+          return;
+        }
+      }
+      
+      // Show connecting snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Connecting to ${network.name}...'),
+            backgroundColor: AppColors.primary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Attempt connection
+      final result = await _wifiConnectionService.connectToNetwork(
+        context,
+        network,
+        password: password,
+      );
+      
+      // Handle connection result
+      if (mounted) {
+        _handleConnectionResult(result, network);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error connecting to ${network.name}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  void _handleConnectionResult(WiFiConnectionResult result, NetworkModel network) {
+    String message;
+    Color backgroundColor;
+    
+    switch (result) {
+      case WiFiConnectionResult.success:
+        message = 'Successfully connected to ${network.name}';
+        backgroundColor = Colors.green;
+        break;
+      case WiFiConnectionResult.redirectedToSettings:
+        message = 'Redirected to Wi-Fi settings. Find "${network.name}" to complete connection.';
+        backgroundColor = AppColors.primary;
+        break;
+      case WiFiConnectionResult.failed:
+        message = 'Failed to connect to ${network.name}';
+        backgroundColor = Colors.red;
+        break;
+      case WiFiConnectionResult.passwordRequired:
+        message = 'Password required for ${network.name}';
+        backgroundColor = Colors.orange;
+        break;
+      case WiFiConnectionResult.permissionDenied:
+        message = 'Permission denied. Please grant Wi-Fi and location permissions.';
+        backgroundColor = Colors.red;
+        break;
+      case WiFiConnectionResult.userCancelled:
+        return; // Don't show message for user cancellation
+      case WiFiConnectionResult.notSupported:
+        message = 'Direct connection not supported. Use device Wi-Fi settings.';
+        backgroundColor = Colors.orange;
+        break;
+      case WiFiConnectionResult.error:
+        message = 'Connection error occurred';
+        backgroundColor = Colors.red;
+        break;
+    }
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Connecting to ${network.name}...'),
-        backgroundColor: AppColors.primary,
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 4),
+        action: result == WiFiConnectionResult.permissionDenied
+            ? SnackBarAction(
+                label: 'Settings',
+                textColor: Colors.white,
+                onPressed: () {
+                  // TODO: Open app settings
+                },
+              )
+            : null,
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'presentation/screens/main_screen.dart';
+import 'presentation/screens/splash_screen.dart';
 
 class DisConXApp extends StatelessWidget {
   const DisConXApp({super.key});
@@ -11,7 +11,7 @@ class DisConXApp extends StatelessWidget {
       title: 'DisConX | DICT Secure Connect',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const MainScreen(),
+      home: const SplashScreen(),
     );
   }
 }

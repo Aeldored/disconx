@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/network_provider.dart';
 import '../../../../data/services/geocoding_service.dart';
@@ -22,6 +23,8 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
   
   bool _isFullScreen = false;
   String _selectedProvince = 'All';
+  LatLng? _currentLocation;
+  bool _isLocating = false;
 
   @override
   void initState() {
@@ -50,6 +53,7 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
             _buildMap(),
             _buildMapControls(),
             _buildLegend(),
+            _buildCurrentLocationButton(),
           ],
         ),
       ),
@@ -94,6 +98,12 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
             MarkerLayer(
               markers: _buildAccessPointMarkers(networks),
             ),
+            
+            // Current location marker
+            if (_currentLocation != null)
+              MarkerLayer(
+                markers: [_buildCurrentLocationMarker()],
+              ),
             
             // City labels
             MarkerLayer(
@@ -256,6 +266,33 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
     return markers;
   }
 
+  Marker _buildCurrentLocationMarker() {
+    return Marker(
+      point: _currentLocation!,
+      width: 40,
+      height: 40,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.blue,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.person_pin,
+          color: Colors.white,
+          size: 20,
+        ),
+      ),
+    );
+  }
+
   Widget _buildMapControls() {
     return Positioned(
       top: 16,
@@ -264,14 +301,14 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
         children: [
           // Province filter
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
+                  blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -279,12 +316,16 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
             child: DropdownButton<String>(
               value: _selectedProvince,
               underline: const SizedBox(),
+              icon: const Icon(Icons.keyboard_arrow_down, size: 16),
               items: ['All', ..._geocodingService.getProvinces()]
                   .map((province) => DropdownMenuItem(
                         value: province,
                         child: Text(
                           province,
-                          style: const TextStyle(fontSize: 12),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ))
                   .toList(),
@@ -296,19 +337,22 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
             ),
           ),
           
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           
           // Fullscreen toggle
           FloatingActionButton.small(
+            heroTag: "fullscreen_button",
             onPressed: () {
               setState(() {
                 _isFullScreen = !_isFullScreen;
               });
             },
             backgroundColor: Colors.white,
+            elevation: 4,
             child: Icon(
               _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
               color: AppColors.primary,
+              size: 20,
             ),
           ),
         ],
@@ -471,6 +515,110 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    }
+  }
+
+  Widget _buildCurrentLocationButton() {
+    return Positioned(
+      bottom: 140,
+      right: 16,
+      child: FloatingActionButton.small(
+        heroTag: "location_button",
+        backgroundColor: AppColors.primary,
+        elevation: 4,
+        onPressed: _isLocating ? null : _centerOnCurrentLocation,
+        child: _isLocating 
+            ? SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(
+                Icons.my_location,
+                color: Colors.white,
+                size: 20,
+              ),
+      ),
+    );
+  }
+
+  Future<void> _centerOnCurrentLocation() async {
+    if (_isLocating) return;
+
+    setState(() {
+      _isLocating = true;
+    });
+
+    try {
+      // Check permission
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception('Location services are disabled');
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permissions are permanently denied');
+      }
+
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+
+      final currentLatLng = LatLng(position.latitude, position.longitude);
+      
+      setState(() {
+        _currentLocation = currentLatLng;
+      });
+
+      // Animate to current location
+      _mapController.move(currentLatLng, 14.0);
+
+      if (mounted) {
+        // Get location name
+        final locationName = _geocodingService.getCityName(
+          position.latitude, 
+          position.longitude,
+        );
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Centered on ${locationName ?? 'your location'}'),
+            backgroundColor: AppColors.primary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to get location: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLocating = false;
+        });
       }
     }
   }

@@ -19,7 +19,9 @@
       "Bash(flutter:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(-exec dart analyze {})"
+      "Bash(-exec dart analyze {})",
+      "Bash(dart:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }
