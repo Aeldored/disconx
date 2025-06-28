@@ -659,4 +659,9 @@ class NetworkProvider extends ChangeNotifier {
   List<NetworkModel> getNetworksForMap() {
     return _networks.where((n) => n.latitude != null && n.longitude != null).toList();
   }
+
+  /// Refresh the networks list to reflect any status changes
+  Future<void> refreshNetworks() async {
+    await loadNearbyNetworks();
+  }
 }

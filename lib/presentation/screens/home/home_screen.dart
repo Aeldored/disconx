@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/network_model.dart';
+import '../../../data/services/access_point_service.dart';
 import '../../../providers/network_provider.dart';
 import 'widgets/network_map_widget.dart';
 import 'widgets/connection_info_widget.dart';
@@ -17,11 +18,16 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final AccessPointService _accessPointService = AccessPointService();
 
   @override
   void initState() {
     super.initState();
-    _loadNetworks();
+    _accessPointService.initialize();
+    // Load networks after the first frame to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadNetworks();
+    });
   }
 
   Future<void> _loadNetworks() async {
@@ -155,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         network: networks[index],
                         onConnect: () => _handleConnect(networks[index]),
                         onReview: () => _handleReview(networks[index]),
-                        onBlock: () => _handleBlock(networks[index]),
+                        onAccessPointAction: (action) => _handleAccessPointAction(networks[index], action),
                       );
                     },
                     childCount: networks.length,
@@ -211,39 +217,53 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _handleBlock(NetworkModel network) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Block Network'),
-        content: Text(
-          'Are you sure you want to block "${network.name}"?\n\n'
-          'This network will be added to your blocked list and you won\'t '
-          'receive notifications about it.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+  Future<void> _handleAccessPointAction(NetworkModel network, AccessPointAction action) async {
+    try {
+      switch (action) {
+        case AccessPointAction.block:
+          await _accessPointService.blockAccessPoint(network);
+          break;
+        case AccessPointAction.trust:
+          await _accessPointService.trustAccessPoint(network);
+          break;
+        case AccessPointAction.flag:
+          await _accessPointService.flagAccessPoint(network);
+          break;
+        case AccessPointAction.unblock:
+          await _accessPointService.unblockAccessPoint(network);
+          break;
+        case AccessPointAction.untrust:
+          await _accessPointService.untrustAccessPoint(network);
+          break;
+        case AccessPointAction.unflag:
+          await _accessPointService.unflagAccessPoint(network);
+          break;
+      }
+
+      // Refresh the networks list to show updated status
+      if (mounted) {
+        context.read<NetworkProvider>().refreshNetworks();
+      }
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Access point ${action.name}ed successfully'),
+            backgroundColor: Colors.green,
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.read<NetworkProvider>().blockNetwork(network.id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Network blocked successfully'),
-                  backgroundColor: AppColors.danger,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
-            ),
-            child: const Text('Block'),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to ${action.name} access point: $e'),
+            backgroundColor: Colors.red,
           ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
 }

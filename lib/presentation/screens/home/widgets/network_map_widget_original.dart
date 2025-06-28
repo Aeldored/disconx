@@ -278,6 +278,18 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
         markerColor = AppColors.warning;
         markerIcon = Icons.help;
         break;
+      case NetworkStatus.blocked:
+        markerColor = Colors.red;
+        markerIcon = Icons.block;
+        break;
+      case NetworkStatus.trusted:
+        markerColor = Colors.blue;
+        markerIcon = Icons.shield;
+        break;
+      case NetworkStatus.flagged:
+        markerColor = Colors.purple;
+        markerIcon = Icons.flag;
+        break;
     }
 
     return Marker(
@@ -432,6 +444,12 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
         return AppColors.danger;
       case NetworkStatus.unknown:
         return AppColors.warning;
+      case NetworkStatus.blocked:
+        return Colors.red;
+      case NetworkStatus.trusted:
+        return Colors.blue;
+      case NetworkStatus.flagged:
+        return Colors.purple;
     }
   }
 
@@ -443,6 +461,12 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
         return 'Suspicious';
       case NetworkStatus.unknown:
         return 'Unknown';
+      case NetworkStatus.blocked:
+        return 'Blocked';
+      case NetworkStatus.trusted:
+        return 'Trusted';
+      case NetworkStatus.flagged:
+        return 'Flagged';
     }
   }
 }

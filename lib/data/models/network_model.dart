@@ -1,6 +1,10 @@
-enum NetworkStatus { verified, suspicious, unknown }
+enum NetworkStatus { verified, suspicious, unknown, blocked, trusted, flagged }
 
 enum SecurityType { wpa2, wpa3, wep, open }
+
+enum AccessPointAction { block, trust, flag, unflag, unblock, untrust }
+
+enum AccessPointCategory { blocked, trusted, flagged }
 
 class NetworkModel {
   final String id;
@@ -14,6 +18,10 @@ class NetworkModel {
   final double? longitude;
   final DateTime lastSeen;
   final bool isConnected;
+  final String? cityName;
+  final String? address;
+  final bool isUserManaged; // If user has manually categorized this AP
+  final DateTime? lastActionDate;
 
   NetworkModel({
     required this.id,
@@ -27,6 +35,10 @@ class NetworkModel {
     this.longitude,
     required this.lastSeen,
     this.isConnected = false,
+    this.cityName,
+    this.address,
+    this.isUserManaged = false,
+    this.lastActionDate,
   });
 
   String get securityTypeString {
@@ -43,6 +55,66 @@ class NetworkModel {
   }
 
   bool get isSuspicious => status == NetworkStatus.suspicious;
+  bool get isBlocked => status == NetworkStatus.blocked;
+  bool get isTrusted => status == NetworkStatus.trusted;
+  bool get isFlagged => status == NetworkStatus.flagged;
+  
+  String get displayLocation => cityName ?? (latitude != null && longitude != null ? 
+    '${latitude!.toStringAsFixed(4)}, ${longitude!.toStringAsFixed(4)}' : 'Unknown location');
+  
+  String get statusDisplayName {
+    switch (status) {
+      case NetworkStatus.verified:
+        return 'Verified';
+      case NetworkStatus.suspicious:
+        return 'Suspicious';
+      case NetworkStatus.unknown:
+        return 'Unknown';
+      case NetworkStatus.blocked:
+        return 'Blocked';
+      case NetworkStatus.trusted:
+        return 'Trusted';
+      case NetworkStatus.flagged:
+        return 'Flagged';
+    }
+  }
+  
+  // Create copy with updated status for user actions
+  NetworkModel copyWith({
+    String? id,
+    String? name,
+    String? description,
+    NetworkStatus? status,
+    SecurityType? securityType,
+    int? signalStrength,
+    String? macAddress,
+    double? latitude,
+    double? longitude,
+    DateTime? lastSeen,
+    bool? isConnected,
+    String? cityName,
+    String? address,
+    bool? isUserManaged,
+    DateTime? lastActionDate,
+  }) {
+    return NetworkModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      status: status ?? this.status,
+      securityType: securityType ?? this.securityType,
+      signalStrength: signalStrength ?? this.signalStrength,
+      macAddress: macAddress ?? this.macAddress,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      lastSeen: lastSeen ?? this.lastSeen,
+      isConnected: isConnected ?? this.isConnected,
+      cityName: cityName ?? this.cityName,
+      address: address ?? this.address,
+      isUserManaged: isUserManaged ?? this.isUserManaged,
+      lastActionDate: lastActionDate ?? this.lastActionDate,
+    );
+  }
 
   String get signalStrengthString {
     if (signalStrength > 70) return 'Strong';
@@ -74,6 +146,10 @@ class NetworkModel {
       longitude: json['longitude']?.toDouble(),
       lastSeen: DateTime.parse(json['lastSeen']),
       isConnected: json['isConnected'] ?? false,
+      cityName: json['cityName'],
+      address: json['address'],
+      isUserManaged: json['isUserManaged'] ?? false,
+      lastActionDate: json['lastActionDate'] != null ? DateTime.parse(json['lastActionDate']) : null,
     );
   }
 
@@ -90,6 +166,10 @@ class NetworkModel {
       'longitude': longitude,
       'lastSeen': lastSeen.toIso8601String(),
       'isConnected': isConnected,
+      'cityName': cityName,
+      'address': address,
+      'isUserManaged': isUserManaged,
+      'lastActionDate': lastActionDate?.toIso8601String(),
     };
   }
 }

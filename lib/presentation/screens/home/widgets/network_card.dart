@@ -7,14 +7,14 @@ class NetworkCard extends StatelessWidget {
   final NetworkModel network;
   final VoidCallback? onConnect;
   final VoidCallback? onReview;
-  final VoidCallback? onBlock;
+  final Function(AccessPointAction)? onAccessPointAction;
 
   const NetworkCard({
     super.key,
     required this.network,
     this.onConnect,
     this.onReview,
-    this.onBlock,
+    this.onAccessPointAction,
   });
 
   @override
@@ -65,6 +65,32 @@ class NetworkCard extends StatelessWidget {
                 ],
               ),
               
+              // Location info
+              if (network.displayLocation != 'Unknown location') ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        network.displayLocation,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              
               // Alert if needed
               if (network.status == NetworkStatus.suspicious) ...[
                 const SizedBox(height: 12),
@@ -78,6 +104,20 @@ class NetworkCard extends StatelessWidget {
                 _buildAlert(
                   icon: Icons.warning_amber_rounded,
                   message: 'This network is not on DICT\'s verified list. Use with caution.',
+                  type: AlertType.warning,
+                ),
+              ] else if (network.status == NetworkStatus.blocked) ...[
+                const SizedBox(height: 12),
+                _buildAlert(
+                  icon: Icons.block,
+                  message: 'This network has been blocked by you.',
+                  type: AlertType.danger,
+                ),
+              ] else if (network.status == NetworkStatus.flagged) ...[
+                const SizedBox(height: 12),
+                _buildAlert(
+                  icon: Icons.flag,
+                  message: 'You have flagged this network as suspicious.',
                   type: AlertType.warning,
                 ),
               ],
@@ -191,35 +231,120 @@ class NetworkCard extends StatelessWidget {
   }
 
   Widget _buildActionButton() {
-    if (network.status == NetworkStatus.verified) {
-      return ElevatedButton(
-        onPressed: onConnect,
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: const Size(80, 32),
-        ),
-        child: const Text('Connect', style: TextStyle(fontSize: 14)),
-      );
-    } else if (network.status == NetworkStatus.unknown) {
-      return ElevatedButton(
-        onPressed: onReview,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.warning,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: const Size(80, 32),
-        ),
-        child: const Text('Review', style: TextStyle(fontSize: 14)),
-      );
-    } else {
-      return ElevatedButton(
-        onPressed: onBlock,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.danger,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: const Size(80, 32),
-        ),
-        child: const Text('Block', style: TextStyle(fontSize: 14)),
-      );
+    switch (network.status) {
+      case NetworkStatus.verified:
+      case NetworkStatus.trusted:
+        return ElevatedButton(
+          onPressed: onConnect,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            minimumSize: const Size(80, 32),
+          ),
+          child: const Text('Connect', style: TextStyle(fontSize: 14)),
+        );
+      case NetworkStatus.blocked:
+        return ElevatedButton(
+          onPressed: () => onAccessPointAction?.call(AccessPointAction.unblock),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            minimumSize: const Size(80, 32),
+          ),
+          child: const Text('Unblock', style: TextStyle(fontSize: 14)),
+        );
+      case NetworkStatus.flagged:
+        return PopupMenuButton<AccessPointAction>(
+          onSelected: (action) => onAccessPointAction?.call(action),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: AccessPointAction.unflag,
+              child: Row(
+                children: [
+                  Icon(Icons.outlined_flag, size: 16),
+                  SizedBox(width: 8),
+                  Text('Unflag'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: AccessPointAction.block,
+              child: Row(
+                children: [
+                  Icon(Icons.block, size: 16, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Block'),
+                ],
+              ),
+            ),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.purple,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Actions', style: TextStyle(color: Colors.white, fontSize: 14)),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
+              ],
+            ),
+          ),
+        );
+      default:
+        return PopupMenuButton<AccessPointAction>(
+          onSelected: (action) => onAccessPointAction?.call(action),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: AccessPointAction.trust,
+              child: Row(
+                children: [
+                  Icon(Icons.shield, size: 16, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Trust'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: AccessPointAction.flag,
+              child: Row(
+                children: [
+                  Icon(Icons.flag, size: 16, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text('Flag'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: AccessPointAction.block,
+              child: Row(
+                children: [
+                  Icon(Icons.block, size: 16, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Block'),
+                ],
+              ),
+            ),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Actions', style: TextStyle(color: Colors.white, fontSize: 14)),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
+              ],
+            ),
+          ),
+        );
     }
   }
 
@@ -294,30 +419,19 @@ class NetworkCard extends StatelessWidget {
                         const SizedBox(height: 12),
                         _buildDetailRow('MAC Address', network.macAddress),
                         const SizedBox(height: 12),
-                        _buildDetailRow('Signal Strength', '${network.signalStrength}%'),
+                        _buildDetailRow('Signal Strength', '${network.signalStrength}% (${network.signalStrengthString})'),
+                        const SizedBox(height: 12),
+                        _buildDetailRow('Location', network.displayLocation),
                         if (network.description != null) ...[
                           const SizedBox(height: 12),
-                          _buildDetailRow('Location', network.description!),
+                          _buildDetailRow('Description', network.description!),
                         ],
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // Action buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Close'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildActionButton(),
-                      ),
-                    ],
-                  ),
+                  // Action buttons for detail sheet
+                  _buildDetailSheetActions(context),
                 ],
               ),
             ),
@@ -338,12 +452,131 @@ class NetworkCard extends StatelessWidget {
             fontSize: 14,
           ),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
+        Flexible(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.end,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailSheetActions(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Actions',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        
+        // Show different actions based on status
+        if (network.status == NetworkStatus.blocked) ...[
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              onAccessPointAction?.call(AccessPointAction.unblock);
+            },
+            icon: const Icon(Icons.check_circle),
+            label: const Text('Unblock Network'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          ),
+        ] else if (network.status == NetworkStatus.trusted) ...[
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              onAccessPointAction?.call(AccessPointAction.untrust);
+            },
+            icon: const Icon(Icons.remove_circle),
+            label: const Text('Remove from Trusted'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              onAccessPointAction?.call(AccessPointAction.block);
+            },
+            icon: const Icon(Icons.block),
+            label: const Text('Block Network'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          ),
+        ] else if (network.status == NetworkStatus.flagged) ...[
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              onAccessPointAction?.call(AccessPointAction.unflag);
+            },
+            icon: const Icon(Icons.outlined_flag),
+            label: const Text('Remove Flag'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              onAccessPointAction?.call(AccessPointAction.block);
+            },
+            icon: const Icon(Icons.block),
+            label: const Text('Block Network'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          ),
+        ] else ...[
+          // Default actions for unknown/suspicious/verified networks
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onAccessPointAction?.call(AccessPointAction.trust);
+                  },
+                  icon: const Icon(Icons.shield),
+                  label: const Text('Trust'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onAccessPointAction?.call(AccessPointAction.flag);
+                  },
+                  icon: const Icon(Icons.flag),
+                  label: const Text('Flag'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              onAccessPointAction?.call(AccessPointAction.block);
+            },
+            icon: const Icon(Icons.block),
+            label: const Text('Block Network'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          ),
+        ],
+        
+        const SizedBox(height: 16),
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
         ),
       ],
     );

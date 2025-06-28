@@ -5,6 +5,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showNotificationIcon;
   final bool showSettingsIcon;
+  final bool showBackButton;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onSettingsTap;
 
@@ -13,6 +14,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.showNotificationIcon = true,
     this.showSettingsIcon = true,
+    this.showBackButton = false,
     this.onNotificationTap,
     this.onSettingsTap,
   });
@@ -22,6 +24,13 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: AppColors.primary,
       elevation: 2,
+      leading: showBackButton
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          : null,
+      automaticallyImplyLeading: showBackButton,
       title: Row(
         children: [
           if (title == 'DisConX') ...[

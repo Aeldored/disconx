@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../providers/settings_provider.dart';
 import 'widgets/settings_section.dart';
 import 'widgets/settings_item.dart';
+import 'access_point_manager_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -105,6 +106,19 @@ class SettingsScreen extends StatelessWidget {
           SettingsSection(
             title: 'Security Settings',
             children: [
+              SettingsItem(
+                icon: Icons.router,
+                iconColor: Colors.orange,
+                title: 'Access Point Manager',
+                subtitle: 'Manage blocked, trusted, and flagged networks',
+                trailing: const Icon(Icons.chevron_right, color: AppColors.gray),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccessPointManagerScreen(),
+                  ),
+                ),
+              ),
               Consumer<SettingsProvider>(
                 builder: (context, settings, child) {
                   return SettingsItem(

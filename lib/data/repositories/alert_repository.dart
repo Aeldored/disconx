@@ -185,6 +185,24 @@ class AlertRepository {
         title = 'Verified Network Found';
         message = '"$networkName" is a verified DICT public access point. Safe to connect.';
         break;
+      case NetworkStatus.blocked:
+        type = AlertType.info;
+        severity = AlertSeverity.low;
+        title = 'Blocked Network';
+        message = '"$networkName" has been blocked by you.';
+        break;
+      case NetworkStatus.trusted:
+        type = AlertType.info;
+        severity = AlertSeverity.low;
+        title = 'Trusted Network';
+        message = '"$networkName" has been marked as trusted by you.';
+        break;
+      case NetworkStatus.flagged:
+        type = AlertType.suspiciousNetwork;
+        severity = AlertSeverity.medium;
+        title = 'Flagged Network';
+        message = '"$networkName" has been flagged as potentially suspicious.';
+        break;
     }
 
     return AlertModel(

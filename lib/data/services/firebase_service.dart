@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_performance/firebase_performance.dart';
@@ -250,6 +249,21 @@ class FirebaseService {
     } catch (e) {
       print('Error fetching app config: $e');
       return AppConfig.defaults();
+    }
+  }
+
+  // Log general event
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) async {
+    try {
+      await _analytics.logEvent(
+        name: name,
+        parameters: parameters,
+      );
+    } catch (e) {
+      print('Error logging event: $e');
     }
   }
 

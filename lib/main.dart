@@ -52,9 +52,11 @@ void main() async {
         ChangeNotifierProxyProvider<AlertProvider, NetworkProvider>(
           create: (_) {
             final networkProvider = NetworkProvider();
-            // Initialize Firebase in NetworkProvider
-            networkProvider.initializeFirebase(prefs).catchError((e) {
-              print('NetworkProvider Firebase initialization failed: $e');
+            // Initialize Firebase after the first frame
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              networkProvider.initializeFirebase(prefs).catchError((e) {
+                print('NetworkProvider Firebase initialization failed: $e');
+              });
             });
             return networkProvider;
           },
