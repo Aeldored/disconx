@@ -18,7 +18,8 @@
       "Bash(/mnt/c/Users/Dred/sdk/flutter/bin/flutter pub get)",
       "Bash(flutter:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(-exec dart analyze {})"
     ],
     "deny": []
   }

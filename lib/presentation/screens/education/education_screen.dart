@@ -118,7 +118,7 @@ class _EducationScreenState extends State<EducationScreen> {
                 Text(
                   'Learn how to protect yourself from Wi-Fi security threats',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
                   ),
                   overflow: TextOverflow.ellipsis,
