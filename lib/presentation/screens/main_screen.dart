@@ -13,11 +13,22 @@ class MainScreen extends StatefulWidget {
 
   @override
   State<MainScreen> createState() => _MainScreenState();
+  
+  // Static method to find and navigate to tab from anywhere in the app
+  static void navigateToTab(BuildContext context, int tabIndex) {
+    final mainScreenState = context.findAncestorStateOfType<_MainScreenState>();
+    mainScreenState?._onTabSelected(tabIndex);
+  }
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final PageController _pageController = PageController();
+  
+  @override
+  void initState() {
+    super.initState();
+  }
 
   final List<Widget> _screens = [
     const HomeScreen(),

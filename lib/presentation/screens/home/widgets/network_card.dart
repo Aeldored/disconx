@@ -348,6 +348,91 @@ class NetworkCard extends StatelessWidget {
     }
   }
 
+  void _showUnverifiedConnectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning,
+              color: Colors.blue,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Unverified Network',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This network is not on the verified list. Use caution when connecting. Continue?',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Network: ${network.name}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onConnect?.call();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Connect Anyway'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showNetworkDetails(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -556,7 +641,7 @@ class NetworkCard extends StatelessWidget {
                   },
                   icon: const Icon(Icons.flag),
                   label: const Text('Flag'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                 ),
               ),
             ],
@@ -578,9 +663,37 @@ class NetworkCard extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
           child: const Text('Close'),
         ),
+        
+        // Add connection button if network is not blocked
+        if (network.status != NetworkStatus.blocked) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                if (network.status == NetworkStatus.verified ||
+                    network.status == NetworkStatus.trusted) {
+                  onConnect?.call();
+                } else {
+                  // Show connection warning for unverified networks
+                  _showUnverifiedConnectionDialog(context);
+                }
+              },
+              icon: const Icon(Icons.wifi),
+              label: const Text('Connect to Network'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
+
 }
 
 enum AlertType { danger, warning, success }

@@ -1,4 +1,4 @@
-enum AlertType { critical, warning, info, evilTwin, suspiciousNetwork, networkBlocked }
+enum AlertType { critical, warning, info, evilTwin, suspiciousNetwork, networkBlocked, networkTrusted }
 
 enum AlertSeverity { low, medium, high, critical }
 

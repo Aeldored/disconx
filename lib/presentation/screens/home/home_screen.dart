@@ -8,6 +8,7 @@ import '../../../providers/network_provider.dart';
 import 'widgets/network_map_widget.dart';
 import 'widgets/connection_info_widget.dart';
 import 'widgets/network_card.dart';
+import '../main_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,17 +35,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadNetworks() async {
     final provider = context.read<NetworkProvider>();
-    await provider.loadNearbyNetworks();
+    await provider.startNetworkScan(forceRescan: false, isManualScan: false);
   }
 
   Future<void> _handleRefresh() async {
-    setState(() {
-    });
-    
-    await _loadNetworks();
-    
-    setState(() {
-    });
+    final provider = context.read<NetworkProvider>();
+    await provider.startNetworkScan(forceRescan: true, isManualScan: false);
   }
 
   @override
@@ -52,6 +48,210 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Widget _buildScanPrompt() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenHeight = MediaQuery.of(context).size.height;
+        final availableHeight = constraints.maxHeight;
+        final isSmallScreen = screenHeight < 600;
+        
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: availableHeight,
+            ),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: EdgeInsets.all(isSmallScreen ? 16 : 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Container(
+                        padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.wifi_find,
+                          size: isSmallScreen ? 48 : 64,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isSmallScreen ? 16 : 24),
+                    Text(
+                      'No Networks Discovered',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 18 : 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: isSmallScreen ? 8 : 12),
+                    Flexible(
+                      child: Text(
+                        'Start a scan to discover nearby Wi-Fi networks and check for potential security threats.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 14 : 16,
+                          color: Colors.grey[600],
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isSmallScreen ? 24 : 32),
+                    ElevatedButton.icon(
+                      onPressed: _navigateToScan,
+                      icon: const Icon(Icons.search),
+                      label: const Text('Start Network Scan'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmallScreen ? 24 : 32,
+                          vertical: isSmallScreen ? 12 : 16,
+                        ),
+                        textStyle: TextStyle(
+                          fontSize: isSmallScreen ? 14 : 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isSmallScreen ? 12 : 16),
+                    TextButton(
+                      onPressed: () => _loadNetworks(),
+                      child: Text(
+                        'Load Sample Networks',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: isSmallScreen ? 12 : 14,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isSmallScreen ? 16 : 24), // Bottom spacing
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyNetworksState() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenHeight = MediaQuery.of(context).size.height;
+        final isSmallScreen = screenHeight < 600;
+        
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight,
+            ),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: EdgeInsets.all(isSmallScreen ? 16 : 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Container(
+                        padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.wifi_off,
+                          size: isSmallScreen ? 48 : 64,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isSmallScreen ? 16 : 24),
+                    Text(
+                      'No Networks Found',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 18 : 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: isSmallScreen ? 8 : 12),
+                    Flexible(
+                      child: Text(
+                        'The scan completed but no Wi-Fi networks were detected in your area. This could be due to distance from access points or network availability.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 14 : 16,
+                          color: Colors.grey[600],
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isSmallScreen ? 24 : 32),
+                    ElevatedButton.icon(
+                      onPressed: _navigateToScan,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Scan Again'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmallScreen ? 24 : 32,
+                          vertical: isSmallScreen ? 12 : 16,
+                        ),
+                        textStyle: TextStyle(
+                          fontSize: isSmallScreen ? 14 : 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isSmallScreen ? 16 : 24),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _navigateToScan() {
+    // Start scanning using the shared provider
+    final provider = context.read<NetworkProvider>();
+    provider.startNetworkScan(forceRescan: true, isManualScan: true);
+    
+    // Navigate to the Scan tab (index 1)
+    MainScreen.navigateToTab(context, 1);
+    
+    // Show a brief message indicating scan has started
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Network scan started'),
+        backgroundColor: AppColors.primary,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _refreshConnectionInfo() async {
+    final provider = context.read<NetworkProvider>();
+    // Force refresh of current connection info
+    await provider.refreshNetworks();
   }
 
   @override
@@ -79,37 +279,46 @@ class _HomeScreenState extends State<HomeScreen> {
                     builder: (context, provider, child) {
                       return ConnectionInfoWidget(
                         currentNetwork: provider.currentNetwork,
+                        onScanTap: () => _navigateToScan(),
+                        onRefreshConnection: () => _refreshConnectionInfo(),
                       );
                     },
                   ),
                   const SizedBox(height: 16),
-                  // Search Bar
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search for Wi-Fi networks...',
-                      prefixIcon: const Icon(Icons.search, color: AppColors.gray),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.lightGray),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.lightGray),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      filled: true,
-                      fillColor: AppColors.bgGray,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    onChanged: (value) {
-                      context.read<NetworkProvider>().filterNetworks(value);
+                  // Search Bar - only show if networks exist
+                  Consumer<NetworkProvider>(
+                    builder: (context, provider, child) {
+                      if (provider.networks.isEmpty && !provider.isLoading) {
+                        return const SizedBox.shrink();
+                      }
+                      return TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search for Wi-Fi networks...',
+                          prefixIcon: const Icon(Icons.search, color: AppColors.gray),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: AppColors.lightGray),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: AppColors.lightGray),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: AppColors.primary),
+                          ),
+                          filled: true,
+                          fillColor: AppColors.bgGray,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          context.read<NetworkProvider>().filterNetworks(value);
+                        },
+                      );
                     },
                   ),
                 ],
@@ -174,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Network List
           Consumer<NetworkProvider>(
             builder: (context, provider, child) {
-              final networks = provider.filteredNetworks;
+              final networks = provider.filteredNetworks.where((n) => n.status != NetworkStatus.blocked).toList();
               
               if (provider.isLoading && networks.isEmpty) {
                 return const SliverFillRemaining(
@@ -184,14 +393,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }
               
-              if (networks.isEmpty) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      'No networks found',
-                      style: TextStyle(color: AppColors.gray),
-                    ),
-                  ),
+              // Show scan prompt if no scan has been performed or no networks found
+              if (networks.isEmpty && !provider.isLoading && !provider.hasPerformedScan) {
+                return SliverFillRemaining(
+                  child: _buildScanPrompt(),
+                );
+              }
+              
+              // Show empty state if scan was performed but no networks found
+              if (networks.isEmpty && !provider.isLoading && provider.hasPerformedScan) {
+                return SliverFillRemaining(
+                  child: _buildEmptyNetworksState(),
                 );
               }
               
@@ -353,39 +565,72 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleAccessPointAction(NetworkModel network, AccessPointAction action) async {
+    if (!mounted) return;
+    
+    final provider = context.read<NetworkProvider>();
+    String actionText = '';
+    Color feedbackColor = Colors.green;
+    
     try {
       switch (action) {
         case AccessPointAction.block:
-          await _accessPointService.blockAccessPoint(network);
+          await provider.blockNetwork(network.id);
+          actionText = 'blocked';
+          feedbackColor = Colors.red;
           break;
         case AccessPointAction.trust:
-          await _accessPointService.trustAccessPoint(network);
+          await provider.trustNetwork(network.id);
+          actionText = 'added to trusted list';
+          feedbackColor = Colors.green;
           break;
         case AccessPointAction.flag:
-          await _accessPointService.flagAccessPoint(network);
+          await provider.flagNetwork(network.id);
+          actionText = 'flagged as suspicious';
+          feedbackColor = Colors.orange;
           break;
         case AccessPointAction.unblock:
-          await _accessPointService.unblockAccessPoint(network);
+          await provider.unblockNetwork(network.id);
+          actionText = 'unblocked';
+          feedbackColor = Colors.blue;
           break;
         case AccessPointAction.untrust:
-          await _accessPointService.untrustAccessPoint(network);
+          await provider.untrustNetwork(network.id);
+          actionText = 'removed from trusted list';
+          feedbackColor = Colors.grey;
           break;
         case AccessPointAction.unflag:
-          await _accessPointService.unflagAccessPoint(network);
+          await provider.unflagNetwork(network.id);
+          actionText = 'unflagged';
+          feedbackColor = Colors.blue;
           break;
-      }
-
-      // Refresh the networks list to show updated status
-      if (mounted) {
-        context.read<NetworkProvider>().refreshNetworks();
       }
 
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Access point ${action.name}ed successfully'),
-            backgroundColor: Colors.green,
+            content: Row(
+              children: [
+                Icon(
+                  _getActionIcon(action),
+                  color: Colors.white,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('"${network.name}" has been $actionText'),
+                ),
+              ],
+            ),
+            backgroundColor: feedbackColor,
+            duration: const Duration(seconds: 3),
+            action: action == AccessPointAction.block
+                ? SnackBarAction(
+                    label: 'Undo',
+                    textColor: Colors.white,
+                    onPressed: () => _handleAccessPointAction(network, AccessPointAction.unblock),
+                  )
+                : null,
           ),
         );
       }
@@ -394,11 +639,29 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to ${action.name} access point: $e'),
+            content: Text('Failed to ${action.name.toLowerCase()} "${network.name}": $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
+    }
+  }
+
+  IconData _getActionIcon(AccessPointAction action) {
+    switch (action) {
+      case AccessPointAction.trust:
+        return Icons.shield;
+      case AccessPointAction.flag:
+        return Icons.flag;
+      case AccessPointAction.block:
+        return Icons.block;
+      case AccessPointAction.untrust:
+        return Icons.remove_circle;
+      case AccessPointAction.unflag:
+        return Icons.outlined_flag;
+      case AccessPointAction.unblock:
+        return Icons.lock_open;
     }
   }
 }

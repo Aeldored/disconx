@@ -119,8 +119,8 @@ class AlertProvider extends ChangeNotifier {
     final alert = AlertModel(
       id: alertId,
       type: AlertType.networkBlocked,
-      title: 'Network Automatically Blocked',
-      message: 'Suspicious network "${network.name}" has been automatically blocked for your protection.',
+      title: 'Network Blocked',
+      message: 'Network "${network.name}" has been blocked and will no longer appear in scan results.',
       severity: AlertSeverity.medium,
       networkName: network.name,
       securityType: network.securityType.toString().split('.').last,
@@ -134,6 +134,77 @@ class AlertProvider extends ChangeNotifier {
     
     _alerts.insert(0, alert);
     notifyListeners();
+  }
+
+  void generateFlaggedNetworkAlert(NetworkModel network) {
+    final alertId = 'alert_flagged_${DateTime.now().millisecondsSinceEpoch}';
+    
+    final alert = AlertModel(
+      id: alertId,
+      type: AlertType.suspiciousNetwork,
+      title: 'Network Flagged as Suspicious',
+      message: 'You have flagged "${network.name}" as suspicious. Connection warnings will be shown.',
+      severity: AlertSeverity.medium,
+      networkName: network.name,
+      securityType: network.securityType.toString().split('.').last,
+      macAddress: network.macAddress,
+      location: network.latitude != null && network.longitude != null
+          ? 'Lat: ${network.latitude!.toStringAsFixed(4)}, Lng: ${network.longitude!.toStringAsFixed(4)}'
+          : 'Unknown location',
+      timestamp: DateTime.now(),
+      isRead: false,
+    );
+    
+    _alerts.insert(0, alert);
+    notifyListeners();
+  }
+
+  void generateTrustedNetworkAlert(NetworkModel network) {
+    final alertId = 'alert_trusted_${DateTime.now().millisecondsSinceEpoch}';
+    
+    final alert = AlertModel(
+      id: alertId,
+      type: AlertType.networkTrusted,
+      title: 'Network Added to Trusted List',
+      message: 'Network "${network.name}" has been marked as trusted for secure connections.',
+      severity: AlertSeverity.low,
+      networkName: network.name,
+      securityType: network.securityType.toString().split('.').last,
+      macAddress: network.macAddress,
+      location: network.latitude != null && network.longitude != null
+          ? 'Lat: ${network.latitude!.toStringAsFixed(4)}, Lng: ${network.longitude!.toStringAsFixed(4)}'
+          : 'Unknown location',
+      timestamp: DateTime.now(),
+      isRead: false,
+    );
+    
+    _alerts.insert(0, alert);
+    notifyListeners();
+  }
+  
+  void generateScanSummaryAlert(int totalNetworks, int threatsDetected, DateTime scanTime) {
+    final alertId = 'alert_summary_${DateTime.now().millisecondsSinceEpoch}';
+    
+    final alert = AlertModel(
+      id: alertId,
+      type: threatsDetected > 0 ? AlertType.warning : AlertType.info,
+      title: 'Scan Complete',
+      message: 'Found $totalNetworks networks, $threatsDetected potential threats detected.',
+      severity: threatsDetected > 0 ? AlertSeverity.medium : AlertSeverity.low,
+      networkName: null,
+      securityType: null,
+      macAddress: null,
+      location: 'Scan completed at ${_formatTime(scanTime)}',
+      timestamp: DateTime.now(),
+      isRead: false,
+    );
+    
+    _alerts.insert(0, alert);
+    notifyListeners();
+  }
+  
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   void markAsRead(String alertId) {

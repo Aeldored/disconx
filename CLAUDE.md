@@ -91,6 +91,52 @@ assets/
 - **Location Services**: GPS integration with permission handling
 - **Analytics Pipeline**: Performance monitoring and user insights
 
+### 🔄 Enhanced Synchronization Architecture (Latest Updates)
+
+#### Cross-Tab Data Synchronization
+- **Centralized State Management**: NetworkProvider serves as single source of truth
+- **Real-time Updates**: Provider notifications ensure immediate UI updates across all tabs
+- **Bidirectional Sync**: AccessPointService ↔ NetworkProvider complete integration
+- **Original Status Preservation**: Networks maintain pre-modification status for proper restoration
+
+#### Manual vs Automatic Scan Differentiation
+```dart
+// NetworkProvider scan method signature
+Future<void> startNetworkScan({
+  bool forceRescan = false, 
+  bool isManualScan = false  // New parameter for alert filtering
+}) async {
+  _isManualScan = isManualScan;
+  // Only generate summary alerts for manual scans
+  if (_isManualScan && _hasPerformedScan) {
+    _alertProvider!.generateScanSummaryAlert(/*...*/);
+  }
+}
+```
+
+#### Enhanced Network Status Management
+```dart
+// Original status tracking for proper flag/unflag behavior
+final Map<String, NetworkStatus> _originalStatuses = {};
+
+void _applyUserDefinedStatuses() {
+  // Store original status before user modifications
+  if (!_originalStatuses.containsKey(network.id) && !network.isUserManaged) {
+    _originalStatuses[network.id] = network.status;
+  }
+  
+  // Restore original status when user-defined status is removed
+  if (!hasUserDefinedStatus) {
+    newStatus = _originalStatuses[network.id] ?? network.status;
+  }
+}
+```
+
+#### Access Point Manager Integration
+- **Unified Action Handling**: All access point actions go through NetworkProvider methods
+- **Automatic Sync**: Changes in Access Point Manager immediately reflect in scan/home screens
+- **State Consistency**: Prevents desynchronization between different parts of the app
+
 ## 📁 Detailed Directory Structure
 
 ```
@@ -597,6 +643,36 @@ flutter run --profile
 // Verify dispose() methods in providers
 ```
 
+#### Synchronization Issues (Recently Resolved)
+```dart
+// ✅ FIXED: Flag/unflag not working properly
+// Problem: Networks didn't restore original status when unflagged
+// Solution: Added _originalStatuses tracking in NetworkProvider
+
+// ✅ FIXED: Access Point Manager changes not syncing to scan/home
+// Problem: AccessPointService methods bypassed NetworkProvider state
+// Solution: Use NetworkProvider methods for all access point actions
+
+// ✅ FIXED: Alert pollution from automatic scans
+// Problem: All scans triggered completion alerts
+// Solution: Added isManualScan parameter to differentiate scan types
+```
+
+#### Network Status Management
+```dart
+// Proper way to handle network actions
+final networkProvider = context.read<NetworkProvider>();
+
+// Use NetworkProvider methods, not AccessPointService directly
+await networkProvider.flagNetwork(networkId);    // ✅ Correct
+await _accessPointService.flagAccessPoint(network); // ❌ Bypasses state
+
+// Check if original status tracking is working
+if (_originalStatuses.containsKey(networkId)) {
+  // Original status preserved for restoration
+}
+```
+
 ## 📈 Performance Optimization
 
 ### Rendering Optimization
@@ -625,6 +701,9 @@ flutter run --profile
 - [x] Repository Pattern data access
 - [x] Service Layer abstraction
 - [x] Component-based UI design
+- [x] **Enhanced Cross-tab synchronization**
+- [x] **Bidirectional AccessPointService ↔ NetworkProvider sync**
+- [x] **Original network status preservation system**
 
 ### ✅ Code Quality
 - [x] No compilation errors
@@ -722,7 +801,70 @@ Future<void> fetchData() async {
 
 ---
 
+## 🔄 Recent Updates & Fixes (Latest Release)
+
+### January 2025 - Synchronization & User Experience Enhancements
+
+#### Critical Bug Fixes Implemented
+1. **Alert System Optimization**
+   - **Issue**: All scans (automatic and manual) were generating completion alerts, polluting the alerts tab
+   - **Fix**: Added `isManualScan` parameter to `startNetworkScan()` method
+   - **Impact**: Only manual user-initiated scans now generate summary alerts
+   - **Files Modified**: `network_provider.dart`, `scan_screen.dart`, `home_screen.dart`
+
+2. **Network Status Restoration**
+   - **Issue**: Flag/unflag functionality not working - networks lost original status when unflagged
+   - **Fix**: Implemented `_originalStatuses` Map to track pre-modification network statuses
+   - **Impact**: Networks properly restore to original status (verified/suspicious/unknown) when user flags are removed
+   - **Files Modified**: `network_provider.dart` (added status preservation system)
+
+3. **Cross-Component Synchronization**
+   - **Issue**: Changes in Access Point Manager not reflecting in scan/home screens
+   - **Fix**: Updated Access Point Manager to use NetworkProvider methods instead of direct AccessPointService calls
+   - **Impact**: Complete bidirectional synchronization between all app components
+   - **Files Modified**: `access_point_manager_screen.dart`
+
+#### Technical Implementation Details
+
+```dart
+// Enhanced NetworkProvider with original status tracking
+class NetworkProvider extends ChangeNotifier {
+  final Map<String, NetworkStatus> _originalStatuses = {};
+  bool _isManualScan = false;
+  
+  // Differentiated scan method
+  Future<void> startNetworkScan({
+    bool forceRescan = false, 
+    bool isManualScan = false,
+  }) async {
+    _isManualScan = isManualScan;
+    // Alert generation logic now respects manual vs automatic distinction
+  }
+  
+  // Enhanced status application with restoration
+  void _applyUserDefinedStatuses() {
+    // Preserve original status before any user modifications
+    // Restore original status when user-defined status is removed
+  }
+}
+```
+
+#### Architecture Benefits Achieved
+- **Consistent State Management**: Single source of truth across all UI components
+- **Improved User Experience**: Reduced alert noise, proper status restoration
+- **Enhanced Data Integrity**: Bidirectional sync prevents desynchronization
+- **Future-Proof Design**: Original status preservation supports complex workflows
+
+#### Validation & Testing
+- ✅ Manual scan alert generation verified
+- ✅ Flag/unflag cycle maintains network integrity  
+- ✅ Access Point Manager changes sync to scan/home immediately
+- ✅ Cross-tab navigation maintains consistent data state
+- ✅ Original network statuses preserved across app sessions
+
+---
+
 **This document serves as the definitive technical reference for DiSConX development. Keep it updated as the architecture evolves.**
 
-**Last Updated**: January 2025  
+**Last Updated**: January 2025 (Major synchronization updates)  
 **Maintained By**: DICT-CALABARZON Development Team

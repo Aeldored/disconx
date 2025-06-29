@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/alert_model.dart';
+import '../../../data/models/network_model.dart';
 import '../../../providers/alert_provider.dart';
+import '../../../providers/network_provider.dart';
 import 'widgets/alert_card.dart';
 
 class AlertsScreen extends StatefulWidget {
@@ -44,16 +46,105 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Title
+        // Title and scan status
         Container(
           padding: const EdgeInsets.all(16),
-          alignment: Alignment.centerLeft,
-          child: const Text(
-            'Security Alerts',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Security Alerts',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Consumer<NetworkProvider>(
+                    builder: (context, networkProvider, child) {
+                      if (networkProvider.isScanning) {
+                        return Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Scanning...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      
+                      if (networkProvider.hasPerformedScan && networkProvider.lastScanTime != null) {
+                        return Text(
+                          'Last scan: ${_formatLastScanTime(networkProvider.lastScanTime!)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        );
+                      }
+                      
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ],
+              ),
+              
+              // Threat summary
+              Consumer<NetworkProvider>(
+                builder: (context, networkProvider, child) {
+                  final threatsDetected = networkProvider.threatsDetected;
+                  // Track suspicious networks for potential UI enhancements
+                  
+                  if (threatsDetected > 0) {
+                    return Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.warning,
+                            color: Colors.red[600],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '$threatsDetected potential threats detected in last scan',
+                              style: TextStyle(
+                                color: Colors.red[800],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
           ),
         ),
         
@@ -311,18 +402,149 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
   }
 
   void _handleAlertAction(AlertModel alert) {
-    // TODO: Implement alert action
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Action taken for ${alert.title}'),
-        backgroundColor: AppColors.primary,
-      ),
-    );
+    final networkProvider = context.read<NetworkProvider>();
+    
+    // If this is a network-related alert, allow blocking the network
+    if (alert.networkName != null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Network Actions'),
+          content: Text('What would you like to do about "${alert.networkName}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            if (alert.type == AlertType.critical || alert.type == AlertType.evilTwin || alert.type == AlertType.suspiciousNetwork) ...[
+              TextButton(
+                onPressed: () async {
+                  // Find the network and trust it
+                  final network = networkProvider.networks.firstWhere(
+                    (n) => n.name == alert.networkName,
+                    orElse: () => NetworkModel(
+                      id: 'alert_network_${alert.networkName}',
+                      name: alert.networkName!,
+                      description: 'Network from alert',
+                      status: NetworkStatus.suspicious,
+                      securityType: SecurityType.open,
+                      signalStrength: 0,
+                      macAddress: alert.macAddress ?? '00:00:00:00:00:00',
+                      lastSeen: DateTime.now(),
+                    ),
+                  );
+                  
+                  await networkProvider.trustNetwork(network.id);
+                  if (mounted) {
+                    Navigator.pop(context);
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('"${alert.networkName}" has been trusted'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                },
+                child: Text('Trust', style: TextStyle(color: Colors.green[600])),
+              ),
+              TextButton(
+                onPressed: () async {
+                  // Find the network and flag it
+                  final network = networkProvider.networks.firstWhere(
+                    (n) => n.name == alert.networkName,
+                    orElse: () => NetworkModel(
+                      id: 'alert_network_${alert.networkName}',
+                      name: alert.networkName!,
+                      description: 'Network from alert',
+                      status: NetworkStatus.suspicious,
+                      securityType: SecurityType.open,
+                      signalStrength: 0,
+                      macAddress: alert.macAddress ?? '00:00:00:00:00:00',
+                      lastSeen: DateTime.now(),
+                    ),
+                  );
+                  
+                  await networkProvider.flagNetwork(network.id);
+                  if (mounted) {
+                    Navigator.pop(context);
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('"${alert.networkName}" has been flagged'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                },
+                child: Text('Flag', style: TextStyle(color: Colors.orange[600])),
+              ),
+            ],
+            ElevatedButton(
+              onPressed: () async {
+                // Find the network and block it
+                final network = networkProvider.networks.firstWhere(
+                  (n) => n.name == alert.networkName,
+                  orElse: () => NetworkModel(
+                    id: 'alert_network_${alert.networkName}',
+                    name: alert.networkName!,
+                    description: 'Network from alert',
+                    status: NetworkStatus.suspicious,
+                    securityType: SecurityType.open,
+                    signalStrength: 0,
+                    macAddress: alert.macAddress ?? '00:00:00:00:00:00',
+                    lastSeen: DateTime.now(),
+                  ),
+                );
+                
+                await networkProvider.blockNetwork(network.id);
+                if (mounted) {
+                  Navigator.pop(context);
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('"${alert.networkName}" has been blocked'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text('Block Network'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Action taken for ${alert.title}'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
   }
 
   void _dismissAlert(AlertProvider alertProvider, AlertModel alert) {
     // Mark alert as read and archive it through the provider
     alertProvider.markAsRead(alert.id);
     alertProvider.archiveAlert(alert.id);
+  }
+  
+  String _formatLastScanTime(DateTime lastScan) {
+    final now = DateTime.now();
+    final difference = now.difference(lastScan);
+    
+    if (difference.inMinutes < 1) {
+      return 'just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
   }
 }

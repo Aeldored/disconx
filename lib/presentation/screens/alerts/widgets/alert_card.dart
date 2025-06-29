@@ -253,6 +253,8 @@ class AlertCard extends StatelessWidget {
       case AlertType.info:
       case AlertType.networkBlocked:
         return AppColors.primary;
+      case AlertType.networkTrusted:
+        return AppColors.success;
     }
   }
 
@@ -267,6 +269,8 @@ class AlertCard extends StatelessWidget {
       case AlertType.info:
       case AlertType.networkBlocked:
         return Icons.info_outline;
+      case AlertType.networkTrusted:
+        return Icons.shield;
     }
   }
 
@@ -284,6 +288,8 @@ class AlertCard extends StatelessWidget {
         return 'Suspicious Network';
       case AlertType.networkBlocked:
         return 'Network Blocked';
+      case AlertType.networkTrusted:
+        return 'Network Trusted';
     }
   }
 

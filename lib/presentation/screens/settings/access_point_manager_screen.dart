@@ -226,9 +226,16 @@ class _AccessPointManagerScreenState extends State<AccessPointManagerScreen>
   }
 
   Widget _buildAccessPointList(AccessPointCategory category) {
-    return FutureBuilder<List<NetworkModel>>(
-      future: _getAccessPointsByCategory(category),
-      builder: (context, snapshot) {
+    return Consumer<NetworkProvider>(
+      builder: (context, networkProvider, child) {
+        return RefreshIndicator(
+          onRefresh: () async {
+            // Force rebuild by calling setState
+            setState(() {});
+          },
+          child: FutureBuilder<List<NetworkModel>>(
+            future: _getAccessPointsByCategory(category),
+            builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: LoadingSpinner());
         }
@@ -324,6 +331,9 @@ class _AccessPointManagerScreenState extends State<AccessPointManagerScreen>
           ),
         );
       },
+    ),
+        );
+      },
     );
   }
 
@@ -373,35 +383,33 @@ class _AccessPointManagerScreenState extends State<AccessPointManagerScreen>
 
   Future<void> _handleAccessPointAction(NetworkModel network, AccessPointAction action) async {
     try {
+      final networkProvider = context.read<NetworkProvider>();
+      
+      // Use NetworkProvider methods to ensure both internal state and AccessPointService are updated
       switch (action) {
         case AccessPointAction.block:
-          await _accessPointService.blockAccessPoint(network);
+          await networkProvider.blockNetwork(network.id);
           break;
         case AccessPointAction.trust:
-          await _accessPointService.trustAccessPoint(network);
+          await networkProvider.trustNetwork(network.id);
           break;
         case AccessPointAction.flag:
-          await _accessPointService.flagAccessPoint(network);
+          await networkProvider.flagNetwork(network.id);
           break;
         case AccessPointAction.unblock:
-          await _accessPointService.unblockAccessPoint(network);
+          await networkProvider.unblockNetwork(network.id);
           break;
         case AccessPointAction.untrust:
-          await _accessPointService.untrustAccessPoint(network);
+          await networkProvider.untrustNetwork(network.id);
           break;
         case AccessPointAction.unflag:
-          await _accessPointService.unflagAccessPoint(network);
+          await networkProvider.unflagNetwork(network.id);
           break;
       }
 
       // Refresh data
       setState(() {});
       await _loadStats();
-
-      // Update network provider
-      if (mounted) {
-        context.read<NetworkProvider>().refreshNetworks();
-      }
 
       // Show success message
       if (mounted) {
@@ -448,15 +456,18 @@ class _AccessPointManagerScreenState extends State<AccessPointManagerScreen>
 
     if (confirmed == true) {
       try {
+        final networkProvider = context.read<NetworkProvider>();
+        
+        // Use NetworkProvider methods to ensure both internal state and AccessPointService are updated
         switch (category) {
           case AccessPointCategory.blocked:
-            await _accessPointService.unblockAccessPoint(network);
+            await networkProvider.unblockNetwork(network.id);
             break;
           case AccessPointCategory.trusted:
-            await _accessPointService.untrustAccessPoint(network);
+            await networkProvider.untrustNetwork(network.id);
             break;
           case AccessPointCategory.flagged:
-            await _accessPointService.unflagAccessPoint(network);
+            await networkProvider.unflagNetwork(network.id);
             break;
         }
 
