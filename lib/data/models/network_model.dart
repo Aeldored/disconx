@@ -20,6 +20,7 @@ class NetworkModel {
   final bool isConnected;
   final String? cityName;
   final String? address;
+  final String? ipAddress; // Current IP address when connected
   final bool isUserManaged; // If user has manually categorized this AP
   final DateTime? lastActionDate;
 
@@ -37,6 +38,7 @@ class NetworkModel {
     this.isConnected = false,
     this.cityName,
     this.address,
+    this.ipAddress,
     this.isUserManaged = false,
     this.lastActionDate,
   });
@@ -94,6 +96,7 @@ class NetworkModel {
     bool? isConnected,
     String? cityName,
     String? address,
+    String? ipAddress,
     bool? isUserManaged,
     DateTime? lastActionDate,
   }) {
@@ -111,6 +114,7 @@ class NetworkModel {
       isConnected: isConnected ?? this.isConnected,
       cityName: cityName ?? this.cityName,
       address: address ?? this.address,
+      ipAddress: ipAddress ?? this.ipAddress,
       isUserManaged: isUserManaged ?? this.isUserManaged,
       lastActionDate: lastActionDate ?? this.lastActionDate,
     );
@@ -148,6 +152,7 @@ class NetworkModel {
       isConnected: json['isConnected'] ?? false,
       cityName: json['cityName'],
       address: json['address'],
+      ipAddress: json['ipAddress'],
       isUserManaged: json['isUserManaged'] ?? false,
       lastActionDate: json['lastActionDate'] != null ? DateTime.parse(json['lastActionDate']) : null,
     );
@@ -168,6 +173,7 @@ class NetworkModel {
       'isConnected': isConnected,
       'cityName': cityName,
       'address': address,
+      'ipAddress': ipAddress,
       'isUserManaged': isUserManaged,
       'lastActionDate': lastActionDate?.toIso8601String(),
     };

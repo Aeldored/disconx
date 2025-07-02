@@ -7,7 +7,7 @@ import '../services/firebase_service.dart';
 
 class NetworkRepository {
   final Dio _dio;
-  final FirebaseService _firebaseService; // Reserved for future Firebase integration
+  // Firebase service reserved for future integration - not currently used
   final SharedPreferences _prefs;
 
   NetworkRepository({
@@ -15,7 +15,6 @@ class NetworkRepository {
     required FirebaseService firebaseService,
     required SharedPreferences prefs,
   })  : _dio = dio,
-        _firebaseService = firebaseService,
         _prefs = prefs;
 
   // Fetch networks from API

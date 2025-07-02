@@ -33,7 +33,7 @@ class ScanResultItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -87,17 +87,17 @@ class ScanResultItem extends StatelessWidget {
 
     switch (result.status) {
       case ScanStatus.verified:
-        backgroundColor = AppColors.success.withOpacity(0.1);
+        backgroundColor = AppColors.success.withValues(alpha: 0.1);
         iconColor = AppColors.success;
         icon = Icons.check;
         break;
       case ScanStatus.suspicious:
-        backgroundColor = AppColors.danger.withOpacity(0.1);
+        backgroundColor = AppColors.danger.withValues(alpha: 0.1);
         iconColor = AppColors.danger;
         icon = Icons.close;
         break;
       case ScanStatus.unknown:
-        backgroundColor = AppColors.warning.withOpacity(0.1);
+        backgroundColor = AppColors.warning.withValues(alpha: 0.1);
         iconColor = AppColors.warning;
         icon = Icons.question_mark;
         break;

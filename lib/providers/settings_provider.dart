@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../data/services/permission_service.dart';
 
 class SettingsProvider extends ChangeNotifier {
   final SharedPreferences _prefs;
+  final PermissionService _permissionService = PermissionService();
   
   // Settings state
   bool _isDarkMode = false;
@@ -26,6 +29,7 @@ class SettingsProvider extends ChangeNotifier {
 
   SettingsProvider(this._prefs) {
     _loadSettings();
+    _syncPermissionStatus();
   }
 
   void _loadSettings() {
@@ -58,9 +62,22 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleLocation() {
-    _locationEnabled = !_locationEnabled;
-    _saveSettings();
+  Future<void> toggleLocation() async {
+    if (!_locationEnabled) {
+      // If currently disabled, try to enable by requesting permission
+      final permissionGranted = await _permissionService.requestLocationPermission();
+      if (permissionGranted == PermissionStatus.granted) {
+        _locationEnabled = true;
+      } else {
+        // Permission denied, keep location disabled
+        _locationEnabled = false;
+      }
+    } else {
+      // If currently enabled, just disable (we can't revoke permissions programmatically)
+      _locationEnabled = false;
+    }
+    
+    await _saveSettings();
     notifyListeners();
   }
 
@@ -98,6 +115,34 @@ class SettingsProvider extends ChangeNotifier {
     _networkHistoryDays = days;
     _saveSettings();
     notifyListeners();
+  }
+
+  /// Sync settings with actual system permissions
+  Future<void> _syncPermissionStatus() async {
+    try {
+      final locationStatus = await _permissionService.checkLocationPermission();
+      final hasLocationPermission = locationStatus == PermissionStatus.granted;
+      
+      if (_locationEnabled && !hasLocationPermission) {
+        // Setting is enabled but permission is denied - update setting
+        _locationEnabled = false;
+        await _saveSettings();
+        notifyListeners();
+      }
+    } catch (e) {
+      // Ignore permission check errors during initialization
+    }
+  }
+
+  /// Get current permission status for location
+  Future<PermissionStatus> getLocationPermissionStatus() async {
+    return await _permissionService.checkLocationPermission();
+  }
+
+  /// Check if location services are actually available
+  Future<bool> isLocationActuallyEnabled() async {
+    final status = await getLocationPermissionStatus();
+    return status == PermissionStatus.granted && _locationEnabled;
   }
 
   Future<void> clearAllData() async {

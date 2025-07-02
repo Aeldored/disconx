@@ -1,9 +1,10 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_performance/firebase_performance.dart';
-import 'dart:convert';
-import 'dart:math';
 import '../models/network_model.dart';
 
 class FirebaseService {
@@ -35,7 +36,7 @@ class FirebaseService {
       
       _initialized = true;
     } catch (e) {
-      print('Firebase service initialization error: $e');
+      developer.log('Firebase service initialization error: $e');
       rethrow;
     }
   }
@@ -53,7 +54,7 @@ class FirebaseService {
           .get();
       
       if (!metadataDoc.exists) {
-        print('No whitelist metadata found');
+        developer.log('No whitelist metadata found');
         await trace.stop();
         return null;
       }
@@ -88,7 +89,7 @@ class FirebaseService {
         );
       } catch (e) {
         // Fallback to Firestore if Storage fails
-        print('Storage fetch failed, falling back to Firestore: $e');
+        developer.log('Storage fetch failed, falling back to Firestore: $e');
         
         final apSnapshot = await _firestore
             .collection('access_points')
@@ -112,7 +113,7 @@ class FirebaseService {
       }
     } catch (e) {
       await trace.stop();
-      print('Error fetching whitelist: $e');
+      developer.log('Error fetching whitelist: $e');
       
       // Log error to analytics
       await _analytics.logEvent(
@@ -191,7 +192,7 @@ class FirebaseService {
       
       return accessPoints;
     } catch (e) {
-      print('Error fetching nearby access points: $e');
+      developer.log('Error fetching nearby access points: $e');
       return [];
     }
   }
@@ -228,7 +229,7 @@ class FirebaseService {
         },
       );
     } catch (e) {
-      print('Error submitting threat report: $e');
+      developer.log('Error submitting threat report: $e');
       rethrow;
     }
   }
@@ -247,7 +248,7 @@ class FirebaseService {
       
       return AppConfig.fromMap(doc.data()!);
     } catch (e) {
-      print('Error fetching app config: $e');
+      developer.log('Error fetching app config: $e');
       return AppConfig.defaults();
     }
   }
@@ -263,7 +264,7 @@ class FirebaseService {
         parameters: parameters,
       );
     } catch (e) {
-      print('Error logging event: $e');
+      developer.log('Error logging event: $e');
     }
   }
 
@@ -298,7 +299,7 @@ class FirebaseService {
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
-      print('Error updating daily stats: $e');
+      developer.log('Error updating daily stats: $e');
     }
   }
 

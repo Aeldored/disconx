@@ -32,7 +32,7 @@ class ConnectionInfoWidget extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -181,6 +181,36 @@ class ConnectionInfoWidget extends StatelessWidget {
               ),
             ],
           ),
+          // Show IP address if available
+          if (currentNetwork!.ipAddress != null && currentNetwork!.ipAddress!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.router,
+                    size: 12,
+                    color: Colors.blue[600],
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'IP: ${currentNetwork!.ipAddress}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.blue[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -219,7 +249,7 @@ class ConnectionInfoWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Not connected to any Wi-Fi network',
+                      'Not connected to the internet.',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
@@ -238,6 +268,30 @@ class ConnectionInfoWidget extends StatelessWidget {
                 tooltip: 'Refresh connection info',
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 1),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.orange, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Connect to Wi-Fi to scan for nearby networks and threats',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(

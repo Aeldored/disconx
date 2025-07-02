@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -77,7 +78,7 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
                 maxZoom: 22,
                 errorTileCallback: (tile, error, stackTrace) {
                   // Handle network errors gracefully
-                  debugPrint('Map tile error: $error');
+                  developer.log('Map tile error: $error');
                 },
                 fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               ),
@@ -99,7 +100,7 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
                             Container(
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.blue.withOpacity(0.2),
+                                color: Colors.blue.withValues(alpha: 0.2),
                               ),
                               child: Container(
                                 margin: const EdgeInsets.all(8),
@@ -108,7 +109,7 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
                                   color: Colors.white,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
+                                      color: Colors.black.withValues(alpha: 0.2),
                                       blurRadius: 4,
                                     ),
                                   ],
@@ -134,7 +135,7 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: Colors.black.withValues(alpha: 0.1),
                                     blurRadius: 2,
                                   ),
                                 ],
@@ -208,7 +209,7 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -235,7 +236,7 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
@@ -305,7 +306,7 @@ class _NetworkMapWidgetState extends State<NetworkMapWidget> {
             border: Border.all(color: Colors.white, width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),

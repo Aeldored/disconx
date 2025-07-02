@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/constants/app_constants.dart';
@@ -57,13 +58,15 @@ class LocationService {
 
       // Get location
       _currentPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
       );
       
       return _currentPosition;
     } catch (e) {
-      print('Location error: $e');
+      developer.log('Location error: $e');
       
       // Return default location if error
       return Position(
@@ -109,12 +112,12 @@ class LocationService {
           _locationStreamController?.add(position);
         },
         onError: (error) {
-          print('Location stream error: $error');
+          developer.log('Location stream error: $error');
           _locationStreamController?.addError(error);
         },
       );
     } catch (e) {
-      print('Start location updates error: $e');
+      developer.log('Start location updates error: $e');
     }
   }
 

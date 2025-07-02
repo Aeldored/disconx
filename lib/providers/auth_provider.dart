@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 
 enum AuthStatus {
@@ -218,7 +219,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
     } catch (e) {
-      print('Sign out error: $e');
+      developer.log('Sign out error: $e');
     }
   }
   

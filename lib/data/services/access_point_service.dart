@@ -1,5 +1,6 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:developer' as developer;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/network_model.dart';
 import 'firebase_service.dart';
 
@@ -36,7 +37,7 @@ class AccessPointService {
         },
       );
     } catch (e) {
-      print('Failed to log block event: $e');
+      developer.log('Failed to log block event: $e');
     }
   }
 
@@ -55,7 +56,7 @@ class AccessPointService {
         },
       );
     } catch (e) {
-      print('Failed to log trust event: $e');
+      developer.log('Failed to log trust event: $e');
     }
   }
 
@@ -73,7 +74,7 @@ class AccessPointService {
         additionalInfo: reason ?? 'User flagged as suspicious',
       );
     } catch (e) {
-      print('Failed to submit threat report: $e');
+      developer.log('Failed to submit threat report: $e');
     }
   }
 
@@ -177,7 +178,7 @@ class AccessPointService {
         await _saveAccessPointsList(flagged, _flaggedApsKey);
       }
     } catch (e) {
-      print('Error importing access point data: $e');
+      developer.log('Error importing access point data: $e');
       rethrow;
     }
   }
@@ -251,7 +252,7 @@ class AccessPointService {
       final jsonList = json.decode(jsonString) as List;
       return jsonList.map((json) => NetworkModel.fromJson(json)).toList();
     } catch (e) {
-      print('Error decoding access points from $storageKey: $e');
+      developer.log('Error decoding access points from $storageKey: $e');
       return [];
     }
   }
@@ -264,7 +265,7 @@ class AccessPointService {
       final jsonString = json.encode(jsonList);
       await _prefs?.setString(storageKey, jsonString);
     } catch (e) {
-      print('Error saving access points to $storageKey: $e');
+      developer.log('Error saving access points to $storageKey: $e');
       rethrow;
     }
   }

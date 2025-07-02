@@ -91,7 +91,20 @@ class SettingsScreen extends StatelessWidget {
                     subtitle: 'Required for finding nearby networks',
                     trailing: Switch(
                       value: settings.locationEnabled,
-                      onChanged: (value) => settings.toggleLocation(),
+                      onChanged: (value) async {
+                        await settings.toggleLocation();
+                        // Show feedback if permission was denied
+                        if (!settings.locationEnabled && value) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Location permission required for Wi-Fi scanning'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        }
+                      },
                       activeColor: AppColors.primary,
                     ),
                   );

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:wifi_scan/wifi_scan.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
@@ -22,24 +23,24 @@ class WiFiScanningService {
       // Check if Wi-Fi scanning is supported
       final canGetScannedResults = await WiFiScan.instance.canGetScannedResults();
       if (canGetScannedResults != CanGetScannedResults.yes) {
-        print('Wi-Fi scanning not supported on this device');
+        developer.log('Wi-Fi scanning not supported on this device');
         return false;
       }
 
       // Request permissions
       final permissionsGranted = await _requestPermissions();
       if (!permissionsGranted) {
-        print('Required permissions not granted');
+        developer.log('Required permissions not granted');
         return false;
       }
 
       // Get current location for analysis
       await _updateLocation();
 
-      print('Wi-Fi scanning service initialized successfully');
+      developer.log('Wi-Fi scanning service initialized successfully');
       return true;
     } catch (e) {
-      print('Failed to initialize Wi-Fi scanning service: $e');
+      developer.log('Failed to initialize Wi-Fi scanning service: $e');
       return false;
     }
   }
@@ -67,13 +68,13 @@ class WiFiScanningService {
       // Check if all permissions are granted
       for (final permission in permissions.values) {
         if (!permission.isGranted) {
-          print('Permission denied: $permission');
+          developer.log('Permission denied: $permission');
         }
       }
 
       return true;
     } catch (e) {
-      print('Error requesting permissions: $e');
+      developer.log('Error requesting permissions: $e');
       return false;
     }
   }
@@ -87,9 +88,9 @@ class WiFiScanningService {
           timeLimit: Duration(seconds: 10),
         ),
       );
-      print('Location updated: ${_currentLocation?.latitude}, ${_currentLocation?.longitude}');
+      developer.log('Location updated: ${_currentLocation?.latitude}, ${_currentLocation?.longitude}');
     } catch (e) {
-      print('Failed to get location: $e');
+      developer.log('Failed to get location: $e');
       // Continue without location - use mock coordinates
       _currentLocation = Position(
         latitude: 14.2117, // Calamba, Laguna
@@ -109,7 +110,7 @@ class WiFiScanningService {
   /// Perform a single Wi-Fi scan
   Future<List<NetworkModel>> performScan() async {
     try {
-      print('Starting Wi-Fi scan...');
+      developer.log('Starting Wi-Fi scan...');
       
       // Start scan
       await WiFiScan.instance.startScan();
@@ -120,7 +121,7 @@ class WiFiScanningService {
       // Get scan results
       final accessPoints = await WiFiScan.instance.getScannedResults();
       
-      print('Found ${accessPoints.length} access points');
+      developer.log('Found ${accessPoints.length} access points');
       
       // Convert to NetworkModel objects
       final networks = <NetworkModel>[];
@@ -131,7 +132,7 @@ class WiFiScanningService {
       
       return networks;
     } catch (e) {
-      print('Wi-Fi scan failed: $e');
+      developer.log('Wi-Fi scan failed: $e');
       return [];
     }
   }
@@ -312,7 +313,7 @@ class WiFiScanningService {
           _scanController!.add(networks);
         }
       } catch (e) {
-        print('Continuous scan error: $e');
+        developer.log('Continuous scan error: $e');
         if (!_scanController!.isClosed) {
           _scanController!.addError(e);
         }

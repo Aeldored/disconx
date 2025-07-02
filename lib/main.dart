@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -25,14 +26,14 @@ void main() async {
   // Initialize Firebase with error handling
   try {
     await Firebase.initializeApp();
-    print('Firebase initialized successfully');
+    developer.log('Firebase initialized successfully');
     
     // Initialize Firebase service
     final firebaseService = FirebaseService();
     await firebaseService.initialize();
   } catch (e) {
-    print('Firebase initialization failed: $e');
-    print('App will continue with local functionality only');
+    developer.log('Firebase initialization failed: $e');
+    developer.log('App will continue with local functionality only');
   }
   
   // Set system UI overlay style
@@ -55,7 +56,7 @@ void main() async {
             // Initialize Firebase after the first frame
             WidgetsBinding.instance.addPostFrameCallback((_) {
               networkProvider.initializeFirebase(prefs).catchError((e) {
-                print('NetworkProvider Firebase initialization failed: $e');
+                developer.log('NetworkProvider Firebase initialization failed: $e');
               });
             });
             return networkProvider;

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -53,7 +54,7 @@ class WiFiConnectionService {
         return await _connectViaSystemSettings(context, network);
       }
     } catch (e) {
-      print('Wi-Fi connection error: $e');
+      developer.log('Wi-Fi connection error: $e');
       return WiFiConnectionResult.error;
     }
   }
@@ -74,7 +75,7 @@ class WiFiConnectionService {
       return permissions.values.every((status) => 
         status == PermissionStatus.granted || status == PermissionStatus.limited);
     } catch (e) {
-      print('Permission check failed: $e');
+      developer.log('Permission check failed: $e');
       return false;
     }
   }
@@ -124,9 +125,9 @@ class WiFiConnectionService {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -180,7 +181,7 @@ class WiFiConnectionService {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -222,7 +223,7 @@ class WiFiConnectionService {
         return WiFiConnectionResult.userCancelled;
       }
     } catch (e) {
-      print('Error opening Wi-Fi settings: $e');
+      developer.log('Error opening Wi-Fi settings: $e');
       return WiFiConnectionResult.error;
     }
   }
@@ -237,7 +238,7 @@ class WiFiConnectionService {
             'action': 'android.settings.WIFI_SETTINGS',
           });
         } catch (e) {
-          print('Android intent failed, settings will open via system navigation: $e');
+          developer.log('Android intent failed, settings will open via system navigation: $e');
           // On Android 10+, the system handles Wi-Fi connections
           // User will be automatically redirected by the system
         }
@@ -245,12 +246,12 @@ class WiFiConnectionService {
         try {
           await const MethodChannel('ios_settings').invokeMethod('wifi');
         } catch (e) {
-          print('iOS settings channel failed: $e');
+          developer.log('iOS settings channel failed: $e');
           // iOS will handle Wi-Fi connections through system UI
         }
       }
     } catch (e) {
-      print('Failed to open Wi-Fi settings: $e');
+      developer.log('Failed to open Wi-Fi settings: $e');
       // This is acceptable - the system will handle the connection flow
       // Modern mobile platforms require user interaction through system UI for security
     }
@@ -264,10 +265,10 @@ class WiFiConnectionService {
     try {
       // This would require a platform channel implementation
       // For now, we'll redirect to settings as it's more reliable
-      print('Direct connection not implemented - redirecting to settings');
+      developer.log('Direct connection not implemented - redirecting to settings');
       return WiFiConnectionResult.notSupported;
     } catch (e) {
-      print('Direct connection failed: $e');
+      developer.log('Direct connection failed: $e');
       return WiFiConnectionResult.error;
     }
   }
@@ -281,7 +282,7 @@ class WiFiConnectionService {
       // For now, assume modern Android (API 29+)
       return 29;
     } catch (e) {
-      print('Failed to get Android version: $e');
+      developer.log('Failed to get Android version: $e');
       return 29; // Assume modern Android
     }
   }
@@ -323,7 +324,7 @@ class WiFiConnectionService {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -367,7 +368,7 @@ class WiFiConnectionService {
       // For now, return false as a safe default
       return false;
     } catch (e) {
-      print('Failed to check connection status: $e');
+      developer.log('Failed to check connection status: $e');
       return false;
     }
   }

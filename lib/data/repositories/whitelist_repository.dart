@@ -1,6 +1,7 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/firebase_service.dart';
-import 'dart:convert';
 
 class WhitelistRepository {
   final FirebaseService _firebaseService;
@@ -22,13 +23,13 @@ class WhitelistRepository {
     if (!forceRefresh && _isCacheValid()) {
       final cached = _getCachedWhitelist();
       if (cached != null) {
-        print('Using cached whitelist');
+        developer.log('Using cached whitelist');
         return cached;
       }
     }
 
     // Fetch from Firebase
-    print('Fetching whitelist from Firebase');
+    developer.log('Fetching whitelist from Firebase');
     final whitelist = await _firebaseService.fetchCurrentWhitelist();
     
     if (whitelist != null) {
@@ -80,7 +81,7 @@ class WhitelistRepository {
         checksum: json['checksum'],
       );
     } catch (e) {
-      print('Error parsing cached whitelist: $e');
+      developer.log('Error parsing cached whitelist: $e');
       return null;
     }
   }

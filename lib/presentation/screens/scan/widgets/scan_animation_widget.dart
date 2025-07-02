@@ -90,8 +90,8 @@ class _ScanAnimationWidgetState extends State<ScanAnimationWidget>
         shape: BoxShape.circle,
         gradient: RadialGradient(
           colors: [
-            AppColors.primary.withOpacity(0.1),
-            AppColors.primary.withOpacity(0.3),
+            AppColors.primary.withValues(alpha: 0.1),
+            AppColors.primary.withValues(alpha: 0.3),
           ],
         ),
       ),
@@ -111,8 +111,8 @@ class _ScanAnimationWidgetState extends State<ScanAnimationWidget>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.2),
-                        AppColors.primary.withOpacity(0.4),
+                        AppColors.primary.withValues(alpha: 0.2),
+                        AppColors.primary.withValues(alpha: 0.4),
                       ],
                     ),
                   ),
@@ -134,8 +134,8 @@ class _ScanAnimationWidgetState extends State<ScanAnimationWidget>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.3),
-                        AppColors.primary.withOpacity(0.5),
+                        AppColors.primary.withValues(alpha: 0.3),
+                        AppColors.primary.withValues(alpha: 0.5),
                       ],
                     ),
                   ),

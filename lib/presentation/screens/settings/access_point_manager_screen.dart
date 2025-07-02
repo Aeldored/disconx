@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -42,7 +43,7 @@ class _AccessPointManagerScreenState extends State<AccessPointManagerScreen>
       final stats = await _accessPointService.getAccessPointStats();
       setState(() => _stats = stats);
     } catch (e) {
-      print('Error loading stats: $e');
+      developer.log('Error loading stats: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -120,7 +121,7 @@ class _AccessPointManagerScreenState extends State<AccessPointManagerScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -199,7 +200,7 @@ class _AccessPointManagerScreenState extends State<AccessPointManagerScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: color, size: 24),
@@ -714,7 +715,7 @@ class AccessPointManagerCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _getCategoryColor(category).withOpacity(0.1),
+                    color: _getCategoryColor(category).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -840,7 +841,7 @@ class AccessPointManagerCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(

@@ -1,9 +1,13 @@
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../data/models/network_model.dart';
 import '../data/services/firebase_service.dart';
 import '../data/services/wifi_scanning_service.dart';
 import '../data/services/access_point_service.dart';
+import '../data/services/current_connection_service.dart';
+import '../data/services/permission_service.dart';
 import '../data/repositories/whitelist_repository.dart';
 import 'alert_provider.dart';
 
@@ -44,6 +48,12 @@ class NetworkProvider extends ChangeNotifier {
   
   // Access Point Service integration
   final AccessPointService _accessPointService = AccessPointService();
+  
+  // Current connection service
+  final CurrentConnectionService _currentConnectionService = CurrentConnectionService();
+  
+  // Permission service
+  final PermissionService _permissionService = PermissionService();
 
   List<NetworkModel> get networks => _networks;
   List<NetworkModel> get filteredNetworks => _filteredNetworks;
@@ -71,6 +81,7 @@ class NetworkProvider extends ChangeNotifier {
     _initializeMockData();
     _initializeWiFiScanning();
     _initializeAccessPointService();
+    _initializeCurrentConnection();
     loadUserPreferences();
   }
 
@@ -79,12 +90,12 @@ class NetworkProvider extends ChangeNotifier {
     try {
       _wifiScanningEnabled = await _wifiScanner.initialize();
       if (_wifiScanningEnabled) {
-        print('Wi-Fi scanning enabled successfully');
+        developer.log('Wi-Fi scanning enabled successfully');
       } else {
-        print('Wi-Fi scanning not available, using mock data');
+        developer.log('Wi-Fi scanning not available, using mock data');
       }
     } catch (e) {
-      print('Wi-Fi scanning initialization failed: $e');
+      developer.log('Wi-Fi scanning initialization failed: $e');
       _wifiScanningEnabled = false;
     }
   }
@@ -93,9 +104,59 @@ class NetworkProvider extends ChangeNotifier {
   Future<void> _initializeAccessPointService() async {
     try {
       await _accessPointService.initialize();
-      print('Access Point Service initialized successfully');
+      developer.log('Access Point Service initialized successfully');
     } catch (e) {
-      print('Access Point Service initialization failed: $e');
+      developer.log('Access Point Service initialization failed: $e');
+    }
+  }
+
+  /// Initialize current connection monitoring
+  Future<void> _initializeCurrentConnection() async {
+    try {
+      // Get initial current connection
+      await refreshCurrentConnection();
+      
+      // Listen for connection changes
+      _currentConnectionService.watchConnectionChanges().listen((network) {
+        _currentNetwork = network;
+        notifyListeners();
+        developer.log('Connection changed: ${network?.name ?? 'Disconnected'}');
+      });
+      
+      developer.log('Current connection monitoring initialized');
+    } catch (e) {
+      developer.log('Current connection initialization failed: $e');
+    }
+  }
+
+  /// Refresh current connection information
+  Future<void> refreshCurrentConnection() async {
+    try {
+      _currentNetwork = await _currentConnectionService.getCurrentConnection();
+      notifyListeners();
+      developer.log('Current connection refreshed: ${_currentNetwork?.name ?? 'None'}');
+    } catch (e) {
+      developer.log('Error refreshing current connection: $e');
+    }
+  }
+
+  /// Check and request required permissions
+  Future<bool> checkAndRequestPermissions() async {
+    try {
+      final currentStatus = await _permissionService.checkAllPermissions();
+      
+      if (currentStatus == PermissionStatus.granted) {
+        return true;
+      }
+      
+      // Request permissions if not granted
+      final results = await _permissionService.requestAllPermissions();
+      
+      // Check if all required permissions are granted
+      return results.values.every((status) => status == PermissionStatus.granted);
+    } catch (e) {
+      developer.log('Error checking permissions: $e');
+      return false;
     }
   }
 
@@ -119,13 +180,13 @@ class NetworkProvider extends ChangeNotifier {
       
       // Listen for whitelist updates
       _whitelistRepository!.whitelistUpdates().listen((metadata) {
-        print('Whitelist updated: v${metadata.version}');
+        developer.log('Whitelist updated: v${metadata.version}');
         refreshWhitelist();
       });
       
-      print('Firebase integration initialized successfully');
+      developer.log('Firebase integration initialized successfully');
     } catch (e) {
-      print('Firebase initialization failed: $e');
+      developer.log('Firebase initialization failed: $e');
       _firebaseEnabled = false;
     }
   }
@@ -138,11 +199,11 @@ class NetworkProvider extends ChangeNotifier {
       final data = await _whitelistRepository!.getWhitelist();
       if (data != null) {
         _currentWhitelist = data;
-        print('Whitelist loaded: ${data.accessPoints.length} access points');
+        developer.log('Whitelist loaded: ${data.accessPoints.length} access points');
         notifyListeners();
       }
     } catch (e) {
-      print('Error refreshing whitelist: $e');
+      developer.log('Error refreshing whitelist: $e');
     }
   }
 
@@ -164,9 +225,9 @@ class NetworkProvider extends ChangeNotifier {
         deviceId: 'device_${DateTime.now().millisecondsSinceEpoch}', // Generate unique device ID
         additionalInfo: 'Reported as suspicious from mobile app',
       );
-      print('Threat report submitted for network: ${network.name}');
+      developer.log('Threat report submitted for network: ${network.name}');
     } catch (e) {
-      print('Error reporting network: $e');
+      developer.log('Error reporting network: $e');
     }
   }
 
@@ -182,7 +243,7 @@ class NetworkProvider extends ChangeNotifier {
         scanType: 'manual_scan',
       );
     } catch (e) {
-      print('Error logging scan event: $e');
+      developer.log('Error logging scan event: $e');
     }
   }
 
@@ -275,7 +336,15 @@ class NetworkProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_wifiScanningEnabled) {
+      // Check permissions before scanning
+      _scanProgress = 0.1;
+      notifyListeners();
+      
+      final hasPermissions = await checkAndRequestPermissions();
+      if (!hasPermissions) {
+        developer.log('Insufficient permissions for scanning, using mock data');
+        await _performRealisticScanWithProgress();
+      } else if (_wifiScanningEnabled) {
         await _performRealWiFiScanWithProgress();
       } else if (_firebaseEnabled && _currentWhitelist != null) {
         await _performFirebaseEnhancedScanWithProgress();
@@ -298,7 +367,7 @@ class NetworkProvider extends ChangeNotifier {
       // Log scan event to Firebase Analytics
       await logScanEvent();
     } catch (e) {
-      print('Error during network scan: $e');
+      developer.log('Error during network scan: $e');
       await _performRealisticScanWithProgress();
       _applyUserDefinedStatuses();
       _calculateScanStatistics();
@@ -316,7 +385,7 @@ class NetworkProvider extends ChangeNotifier {
     notifyListeners();
     
     // Log scan completion for debugging
-    print('Scan completed: $_totalNetworksFound networks found, $_threatsDetected threats detected');
+    developer.log('Scan completed: $_totalNetworksFound networks found, $_threatsDetected threats detected');
   }
   
   /// Stop ongoing scan
@@ -331,8 +400,9 @@ class NetworkProvider extends ChangeNotifier {
     await startNetworkScan();
   }
 
-  Future<void> _performRealWiFiScan() async {
-    print('Performing real Wi-Fi scan...');
+  // Unused method - reserved for future real Wi-Fi scanning implementation
+  /* Future<void> _performRealWiFiScan() async {
+    developer.log('Performing real Wi-Fi scan...');
     
     // Clear existing networks
     _networks.clear();
@@ -366,17 +436,17 @@ class NetworkProvider extends ChangeNotifier {
       // Set current network (check if we're connected to any of the scanned networks)
       await _identifyCurrentNetwork();
       
-      print('Real Wi-Fi scan completed: ${_networks.length} networks found');
+      developer.log('Real Wi-Fi scan completed: ${_networks.length} networks found');
       
     } catch (e) {
-      print('Real Wi-Fi scan failed: $e');
+      developer.log('Real Wi-Fi scan failed: $e');
       // Fall back to mock data
       await _performRealisticScan();
     }
     
     // Update filtered networks with current search query
     _updateFilteredNetworks();
-  }
+  } */
 
   /// Cross-reference scanned networks with Firebase whitelist
   void _crossReferenceWithWhitelist() {
@@ -393,30 +463,72 @@ class NetworkProvider extends ChangeNotifier {
 
   /// Identify current connected network from scan results
   Future<void> _identifyCurrentNetwork() async {
-    // Try to identify which network we're currently connected to
-    // This is a simplified implementation - in practice, you'd use 
-    // connectivity APIs to get the current SSID and match it
-    
-    // For now, we'll mark the strongest signal as potentially connected
-    if (_networks.isNotEmpty) {
-      final strongestNetwork = _networks.reduce((a, b) => 
-        a.signalStrength > b.signalStrength ? a : b);
+    try {
+      // Get actual current connection using CurrentConnectionService
+      final actualCurrentNetwork = await _currentConnectionService.getCurrentConnection();
       
-      // Only mark as connected if it's a verified/trusted network with very strong signal
-      if ((strongestNetwork.status == NetworkStatus.verified || 
-           strongestNetwork.status == NetworkStatus.trusted) &&
-          strongestNetwork.signalStrength > 80) {
+      if (actualCurrentNetwork != null) {
+        // Update the global current network
+        _currentNetwork = actualCurrentNetwork;
         
-        final index = _networks.indexWhere((n) => n.id == strongestNetwork.id);
-        if (index != -1) {
-          _networks[index] = strongestNetwork.copyWith(isConnected: true);
-          _currentNetwork = _networks[index];
+        // Try to find matching network in scan results and mark as connected
+        final matchingNetworkIndex = _networks.indexWhere((network) => 
+          network.name.toLowerCase() == actualCurrentNetwork.name.toLowerCase() ||
+          (network.macAddress.isNotEmpty && 
+           actualCurrentNetwork.macAddress.isNotEmpty &&
+           network.macAddress.toLowerCase() == actualCurrentNetwork.macAddress.toLowerCase())
+        );
+        
+        if (matchingNetworkIndex != -1) {
+          // Update the scanned network to mark as connected
+          _networks[matchingNetworkIndex] = _networks[matchingNetworkIndex].copyWith(
+            isConnected: true,
+            ipAddress: actualCurrentNetwork.ipAddress,
+          );
+          
+          // Use the scanned network data (which has more complete threat analysis)
+          // but preserve the connection status and IP from current connection
+          _currentNetwork = _networks[matchingNetworkIndex];
+          developer.log('Matched current connection "${actualCurrentNetwork.name}" with scanned network');
+        } else {
+          developer.log('Current connection "${actualCurrentNetwork.name}" not found in scan results');
+        }
+      } else {
+        // No current connection, clear current network
+        _currentNetwork = null;
+        
+        // Ensure no scanned networks are marked as connected
+        for (int i = 0; i < _networks.length; i++) {
+          if (_networks[i].isConnected) {
+            _networks[i] = _networks[i].copyWith(isConnected: false);
+          }
+        }
+        developer.log('No current Wi-Fi connection detected');
+      }
+    } catch (e) {
+      developer.log('Error identifying current network: $e');
+      
+      // Fallback to previous mock behavior
+      if (_networks.isNotEmpty) {
+        final strongestNetwork = _networks.reduce((a, b) => 
+          a.signalStrength > b.signalStrength ? a : b);
+        
+        if ((strongestNetwork.status == NetworkStatus.verified || 
+             strongestNetwork.status == NetworkStatus.trusted) &&
+            strongestNetwork.signalStrength > 80) {
+          
+          final index = _networks.indexWhere((n) => n.id == strongestNetwork.id);
+          if (index != -1) {
+            _networks[index] = strongestNetwork.copyWith(isConnected: true);
+            _currentNetwork = _networks[index];
+          }
         }
       }
     }
   }
 
-  Future<void> _performFirebaseEnhancedScan() async {
+  // Unused method - reserved for future Firebase enhanced scanning
+  /* Future<void> _performFirebaseEnhancedScan() async {
     // Clear existing networks
     _networks.clear();
     
@@ -585,155 +697,8 @@ class NetworkProvider extends ChangeNotifier {
     
     // Update filtered networks with current search query
     _updateFilteredNetworks();
-  }
+  } */
 
-  Future<void> _performRealisticScan() async {
-    // Clear existing networks
-    _networks.clear();
-    
-    // Simulate scanning delay with progressive discovery
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Add verified government networks
-    _networks.addAll([
-      NetworkModel(
-        id: 'gov_1',
-        name: 'DICT-CALABARZON-OFFICIAL',
-        description: 'DICT Public Access Point',
-        status: NetworkStatus.verified,
-        securityType: SecurityType.wpa2,
-        signalStrength: 85,
-        macAddress: '00:1A:2B:3C:4D:5E',
-        latitude: 14.2117,
-        longitude: 121.1644,
-        lastSeen: DateTime.now(),
-        isConnected: true,
-      ),
-      NetworkModel(
-        id: 'gov_2',
-        name: 'GOV-PH-SECURE',
-        description: 'Government Network',
-        status: NetworkStatus.verified,
-        securityType: SecurityType.wpa3,
-        signalStrength: 78,
-        macAddress: '00:1A:2B:3C:4D:5F',
-        latitude: 14.2120,
-        longitude: 121.1650,
-        lastSeen: DateTime.now(),
-      ),
-    ]);
-    notifyListeners();
-    
-    await Future.delayed(const Duration(milliseconds: 800));
-    
-    // Add legitimate commercial networks
-    _networks.addAll([
-      NetworkModel(
-        id: 'commercial_1',
-        name: 'SM_WiFi',
-        description: 'SM Calamba',
-        status: NetworkStatus.verified,
-        securityType: SecurityType.wpa2,
-        signalStrength: 60,
-        macAddress: 'A1:B2:C3:D4:E5:F6',
-        latitude: 14.2050,
-        longitude: 121.1580,
-        lastSeen: DateTime.now().subtract(const Duration(minutes: 5)),
-      ),
-      NetworkModel(
-        id: 'commercial_2',
-        name: 'PLDT_HomeWiFi_5G',
-        description: 'Private Network',
-        status: NetworkStatus.verified,
-        securityType: SecurityType.wpa3,
-        signalStrength: 90,
-        macAddress: '11:22:33:44:55:66',
-        latitude: 14.2080,
-        longitude: 121.1600,
-        lastSeen: DateTime.now(),
-      ),
-    ]);
-    notifyListeners();
-    
-    await Future.delayed(const Duration(milliseconds: 1200));
-    
-    // Add potentially suspicious networks (evil twins)
-    final suspiciousNetworks = _generateEvilTwinNetworks();
-    _networks.addAll(suspiciousNetworks);
-    notifyListeners();
-    
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Add some unknown networks
-    _networks.addAll([
-      NetworkModel(
-        id: 'unknown_1',
-        name: 'Coffee_Shop_WiFi',
-        description: 'Unknown location',
-        status: NetworkStatus.unknown,
-        securityType: SecurityType.open,
-        signalStrength: 45,
-        macAddress: 'B1:C2:D3:E4:F5:A6',
-        latitude: 14.2090,
-        longitude: 121.1610,
-        lastSeen: DateTime.now(),
-      ),
-      NetworkModel(
-        id: 'unknown_2',
-        name: 'Guest_Network',
-        description: 'Unknown network',
-        status: NetworkStatus.unknown,
-        securityType: SecurityType.wep,
-        signalStrength: 55,
-        macAddress: 'C1:D2:E3:F4:A5:B6',
-        latitude: 14.2070,
-        longitude: 121.1590,
-        lastSeen: DateTime.now(),
-      ),
-    ]);
-    
-    // Perform evil twin detection
-    _performEvilTwinDetection();
-    
-    // Generate alerts for suspicious networks
-    _generateAlertsForSuspiciousNetworks();
-    
-    // Set current network if not already set
-    if (_currentNetwork == null) {
-      final connectedNetwork = _networks.firstWhere(
-        (n) => n.isConnected, 
-        orElse: () => _networks.isNotEmpty && _networks.any((n) => n.status == NetworkStatus.verified) 
-            ? _networks.firstWhere((n) => n.status == NetworkStatus.verified).copyWith(isConnected: true)
-            : _networks.isNotEmpty 
-                ? _networks.first.copyWith(isConnected: true) 
-                : NetworkModel(
-                    id: 'mock_connected',
-                    name: 'DICT-CALABARZON-OFFICIAL',
-                    description: 'DICT Public Access Point',
-                    status: NetworkStatus.verified,
-                    securityType: SecurityType.wpa2,
-                    signalStrength: 85,
-                    macAddress: '00:1A:2B:3C:4D:5E',
-                    latitude: 14.2117,
-                    longitude: 121.1644,
-                    lastSeen: DateTime.now(),
-                    isConnected: true,
-                  ),
-      );
-      _currentNetwork = connectedNetwork;
-      
-      // Update the network in the list to show it as connected
-      if (_networks.isNotEmpty) {
-        final index = _networks.indexWhere((n) => n.id == _currentNetwork!.id);
-        if (index != -1) {
-          _networks[index] = _currentNetwork!;
-        }
-      }
-    }
-    
-    // Update filtered networks with current search query
-    _updateFilteredNetworks();
-  }
 
   List<NetworkModel> _generateEvilTwinNetworks() {
     final DateTime now = DateTime.now();
@@ -909,35 +874,35 @@ class NetworkProvider extends ChangeNotifier {
   
   /// Debug method to check network sync status
   void debugNetworkSync() {
-    print('=== NetworkProvider Debug ===');
-    print('_networks.length: ${_networks.length}');
-    print('_filteredNetworks.length: ${_filteredNetworks.length}');
-    print('_searchQuery: "$_searchQuery"');
-    print('_hasPerformedScan: $_hasPerformedScan');
-    print('_isScanning: $_isScanning');
-    print('_isLoading: $_isLoading');
-    print('Trusted Networks: $_trustedNetworkIds');
-    print('Blocked Networks: $_blockedNetworkIds');
-    print('Flagged Networks: $_flaggedNetworkIds');
-    print('Networks: ${_networks.map((n) => n.name).join(', ')}');
-    print('Filtered: ${_filteredNetworks.map((n) => n.name).join(', ')}');
-    print('=============================');
+    developer.log('=== NetworkProvider Debug ===');
+    developer.log('_networks.length: ${_networks.length}');
+    developer.log('_filteredNetworks.length: ${_filteredNetworks.length}');
+    developer.log('_searchQuery: "$_searchQuery"');
+    developer.log('_hasPerformedScan: $_hasPerformedScan');
+    developer.log('_isScanning: $_isScanning');
+    developer.log('_isLoading: $_isLoading');
+    developer.log('Trusted Networks: $_trustedNetworkIds');
+    developer.log('Blocked Networks: $_blockedNetworkIds');
+    developer.log('Flagged Networks: $_flaggedNetworkIds');
+    developer.log('Networks: ${_networks.map((n) => n.name).join(', ')}');
+    developer.log('Filtered: ${_filteredNetworks.map((n) => n.name).join(', ')}');
+    developer.log('=============================');
   }
   
   /// Debug method to verify AccessPointService synchronization
   Future<void> debugAccessPointSync() async {
-    print('=== AccessPointService Sync Debug ===');
+    developer.log('=== AccessPointService Sync Debug ===');
     try {
       final trustedAPs = await _accessPointService.getTrustedAccessPoints();
       final blockedAPs = await _accessPointService.getBlockedAccessPoints();
       final flaggedAPs = await _accessPointService.getFlaggedAccessPoints();
       
-      print('AccessPointService Trusted: ${trustedAPs.map((n) => n.name).join(', ')}');
-      print('AccessPointService Blocked: ${blockedAPs.map((n) => n.name).join(', ')}');
-      print('AccessPointService Flagged: ${flaggedAPs.map((n) => n.name).join(', ')}');
-      print('=====================================');
+      developer.log('AccessPointService Trusted: ${trustedAPs.map((n) => n.name).join(', ')}');
+      developer.log('AccessPointService Blocked: ${blockedAPs.map((n) => n.name).join(', ')}');
+      developer.log('AccessPointService Flagged: ${flaggedAPs.map((n) => n.name).join(', ')}');
+      developer.log('=====================================');
     } catch (e) {
-      print('Error checking AccessPointService sync: $e');
+      developer.log('Error checking AccessPointService sync: $e');
     }
   }
 
@@ -978,7 +943,7 @@ class NetworkProvider extends ChangeNotifier {
     try {
       await _accessPointService.trustAccessPoint(network);
     } catch (e) {
-      print('Failed to sync trusted network with AccessPointService: $e');
+      developer.log('Failed to sync trusted network with AccessPointService: $e');
     }
     
     await _saveUserPreferences();
@@ -1014,7 +979,7 @@ class NetworkProvider extends ChangeNotifier {
     try {
       await _accessPointService.flagAccessPoint(network);
     } catch (e) {
-      print('Failed to sync flagged network with AccessPointService: $e');
+      developer.log('Failed to sync flagged network with AccessPointService: $e');
     }
     
     await _saveUserPreferences();
@@ -1048,7 +1013,7 @@ class NetworkProvider extends ChangeNotifier {
     try {
       await _accessPointService.blockAccessPoint(network);
     } catch (e) {
-      print('Failed to sync blocked network with AccessPointService: $e');
+      developer.log('Failed to sync blocked network with AccessPointService: $e');
     }
     
     await _saveUserPreferences();
@@ -1076,7 +1041,7 @@ class NetworkProvider extends ChangeNotifier {
     try {
       await _accessPointService.untrustAccessPoint(network);
     } catch (e) {
-      print('Failed to sync untrusted network with AccessPointService: $e');
+      developer.log('Failed to sync untrusted network with AccessPointService: $e');
     }
     
     await _saveUserPreferences();
@@ -1104,7 +1069,7 @@ class NetworkProvider extends ChangeNotifier {
     try {
       await _accessPointService.unflagAccessPoint(network);
     } catch (e) {
-      print('Failed to sync unflagged network with AccessPointService: $e');
+      developer.log('Failed to sync unflagged network with AccessPointService: $e');
     }
     
     await _saveUserPreferences();
@@ -1132,7 +1097,7 @@ class NetworkProvider extends ChangeNotifier {
     try {
       await _accessPointService.unblockAccessPoint(network);
     } catch (e) {
-      print('Failed to sync unblocked network with AccessPointService: $e');
+      developer.log('Failed to sync unblocked network with AccessPointService: $e');
     }
     
     await _saveUserPreferences();
@@ -1295,7 +1260,7 @@ class NetworkProvider extends ChangeNotifier {
       });
       await prefs.setStringList('original_statuses', originalStatusesJson);
     } catch (e) {
-      print('Error saving user preferences: $e');
+      developer.log('Error saving user preferences: $e');
     }
   }
 
@@ -1320,12 +1285,12 @@ class NetworkProvider extends ChangeNotifier {
             );
             _originalStatuses[networkId] = status;
           } catch (e) {
-            print('Error parsing original status for $networkId: $e');
+            developer.log('Error parsing original status for $networkId: $e');
           }
         }
       }
     } catch (e) {
-      print('Error loading user preferences: $e');
+      developer.log('Error loading user preferences: $e');
     }
   }
 
@@ -1527,7 +1492,7 @@ class NetworkProvider extends ChangeNotifier {
   
   /// Perform real Wi-Fi scan with progress tracking
   Future<void> _performRealWiFiScanWithProgress() async {
-    print('Performing real Wi-Fi scan with progress...');
+    developer.log('Performing real Wi-Fi scan with progress...');
     
     _networks.clear();
     notifyListeners();
@@ -1563,10 +1528,10 @@ class NetworkProvider extends ChangeNotifier {
       _scanProgress = 1.0;
       await _identifyCurrentNetwork();
       
-      print('Real Wi-Fi scan completed: ${_networks.length} networks found');
+      developer.log('Real Wi-Fi scan completed: ${_networks.length} networks found');
       
     } catch (e) {
-      print('Real Wi-Fi scan failed: $e');
+      developer.log('Real Wi-Fi scan failed: $e');
       await _performRealisticScanWithProgress();
     }
   }
@@ -1603,7 +1568,7 @@ class NetworkProvider extends ChangeNotifier {
     
     // If we found new threats in this scan, show an immediate notification
     if (newThreats.isNotEmpty) {
-      print('New threats detected in this scan: ${newThreats.length}');
+      developer.log('New threats detected in this scan: ${newThreats.length}');
       // Force UI refresh to show new alerts immediately
       notifyListeners();
     }

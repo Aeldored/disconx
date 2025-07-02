@@ -29,6 +29,7 @@ dependencies:
   # Networking
   dio: ^5.4.0
   connectivity_plus: ^6.1.4
+  network_info_plus: ^6.0.0
   
   # Location Services
   geolocator: ^14.0.1
